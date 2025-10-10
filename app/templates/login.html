@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Meta Técnicos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="login-container">
+            <!-- Logo e Título -->
+            <div class="text-center mb-8">
+                <div class="logo-container">
+                    <i class="fas fa-user-circle text-white text-4xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white mt-4">Acesse o Sistema</h1>
+                <p class="text-cyan-400 mt-2">Entre com suas credenciais</p>
+            </div>
+
+            <!-- Formulário de Login -->
+            <form id="loginForm" class="space-y-6">
+                <div class="input-group">
+                    <label for="email" class="input-label">Login</label>
+                    <div class="input-container">
+                        <i class="fas fa-user-circle input-icon"></i>
+                        <input type="email" id="email" class="input-field" placeholder="seu@email.com" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="password" class="input-label">Senha</label>
+                    <div class="input-container">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" class="input-field" placeholder="Sua senha" required>
+                        <button type="button" id="togglePassword" class="password-toggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                </div>
+
+                <button type="submit" class="submit-button">
+                    <span class="button-text">Entrar</span>
+                    <i class="fas fa-arrow-right button-icon"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Sucesso -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="modal-title">Login realizado!</h3>
+            <p class="modal-message">Redirecionando para o painel...</p>
+            <button class="modal-button" id="closeModal">OK</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script_login.js') }}"></script>
+</body>
+
+</html>

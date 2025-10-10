@@ -1,0 +1,58 @@
+# ===== PYTHON =====
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Byte-compiled / cache files em qualquer pasta
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.swp
+**/*.swo
+
+# ===== VIRTUAL ENVIRONMENT =====
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+**/venv/
+**/env/
+
+# ===== FLASK MIGRATIONS =====
+migrations/
+**/migrations/
+
+# ===== LOGS / TEMP / CACHE =====
+*.log
+*.pot
+*.mo
+*.db
+instance/
+.cache/
+.pytest_cache/
+__pypackages__/
+.DS_Store
+
+# ===== IDEs / EDITORS =====
+.vscode/
+.idea/
+*.iml
+
+# ===== OS FILES =====
+Thumbs.db
+Desktop.ini
+
+# ===== COMPILED FILES =====
+*.so
+*.dll
+*.exe
+*.o
+*.a
+*.out
+
+# ===== CONFIG PRIVATE =====
+*.env
+.env.*
