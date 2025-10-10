@@ -26,25 +26,25 @@ def admin_dashboard():
                          typeservices_count=typeservices_count,
                          recent_orders=recent_orders)
 
-@admin_bp.route('/admin/customers')
+@admin_bp.route('/customers')
 def admin_customers():
     """Página de gerenciamento de clientes"""
     customers = Customer.query.all()
     return render_template('admin/models/customers.html', customers=customers)
 
-@admin_bp.route('/admin/experts')
+@admin_bp.route('/experts')
 def admin_experts():
     """Página de gerenciamento de técnicos"""
     experts = Expert.query.all()
     return render_template('admin/models/experts.html', experts=experts)
 
-@admin_bp.route('/admin/typeservices')
+@admin_bp.route('/typeservices')
 def admin_typeservices():
     """Página de gerenciamento de tipos de serviço"""
     typeservices = TypeService.query.all()
     return render_template('admin/models/typeservices.html', typeservices=typeservices)
 
-@admin_bp.route('/admin/serviceorders')
+@admin_bp.route('/serviceorders')
 def admin_serviceorders():
     """Página de gerenciamento de ordens de serviço"""
     service_orders = ServiceOrder.query.all()
@@ -67,7 +67,7 @@ def admin_serviceorders():
                          in_progress_orders=in_progress_orders)
     
 # API Routes para CRUD operations
-@admin_bp.route('/admin/api/customers', methods=['GET', 'POST'])
+@admin_bp.route('/api/customers', methods=['GET', 'POST'])
 def api_customers():
     if request.method == 'POST':
         # Criar novo cliente
@@ -93,7 +93,7 @@ def api_customers():
         'internet_package': c.internet_package
     } for c in customers])
 
-@admin_bp.route('/admin/api/customers/<int:customer_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/customers/<int:customer_id>', methods=['PUT', 'DELETE'])
 def api_customer(customer_id):
     if request.method == 'PUT':
         # Atualizar cliente
@@ -113,7 +113,7 @@ def api_customer(customer_id):
         success = Customer.delete(customer_id)
         return jsonify({'success': success})
 
-@admin_bp.route('/admin/api/experts', methods=['GET', 'POST'])
+@admin_bp.route('/api/experts', methods=['GET', 'POST'])
 def api_experts():
     if request.method == 'POST':
         data = request.get_json()
@@ -137,7 +137,7 @@ def api_experts():
         'experience_years': e.experience_years
     } for e in experts])
 
-@admin_bp.route('/admin/api/experts/<int:expert_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/experts/<int:expert_id>', methods=['PUT', 'DELETE'])
 def api_expert(expert_id):
     if request.method == 'PUT':
         data = request.get_json()
@@ -155,7 +155,7 @@ def api_expert(expert_id):
         success = Expert.delete(expert_id)
         return jsonify({'success': success})
 
-@admin_bp.route('/admin/api/typeservices', methods=['GET', 'POST'])
+@admin_bp.route('/api/typeservices', methods=['GET', 'POST'])
 def api_typeservices():
     if request.method == 'POST':
         data = request.get_json()
@@ -176,7 +176,7 @@ def api_typeservices():
         'description': ts.description
     } for ts in typeservices])
 
-@admin_bp.route('/admin/api/typeservices/<int:type_service_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/typeservices/<int:type_service_id>', methods=['PUT', 'DELETE'])
 def api_typeservice(type_service_id):
     if request.method == 'PUT':
         data = request.get_json()
@@ -193,7 +193,7 @@ def api_typeservice(type_service_id):
         success = TypeService.delete(type_service_id)
         return jsonify({'success': success})
 
-@admin_bp.route('/admin/api/serviceorders', methods=['GET', 'POST'])
+@admin_bp.route('/api/serviceorders', methods=['GET', 'POST'])
 def api_serviceorders():
     if request.method == 'POST':
         data = request.get_json()
@@ -229,7 +229,7 @@ def api_serviceorders():
         'type_service_id': so.type_service_id
     } for so in service_orders])
 
-@admin_bp.route('/admin/api/serviceorders/<int:order_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/serviceorders/<int:order_id>', methods=['PUT', 'DELETE'])
 def api_serviceorder(order_id):
     if request.method == 'PUT':
         data = request.get_json()
@@ -255,7 +255,7 @@ def api_serviceorder(order_id):
         success = ServiceOrder.delete(order_id)
         return jsonify({'success': success})
 
-@admin_bp.route('/admin/api/serviceorders/<int:order_id>/complete', methods=['POST'])
+@admin_bp.route('/api/serviceorders/<int:order_id>/complete', methods=['POST'])
 def api_complete_serviceorder(order_id):
     """Marca uma ordem de serviço como concluída"""
     service_order = ServiceOrder.update(order_id, completion_date=datetime.now())
