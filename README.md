@@ -9,6 +9,7 @@ O presente projeto visa realizar a coleta de informações de serviços realizad
 
 ```
 meta_tecnicos
+├─ README.md
 ├─ app
 │  ├─ __init__.py
 │  ├─ database
@@ -16,17 +17,35 @@ meta_tecnicos
 │  │  └─ connection.py
 │  ├─ models
 │  │  ├─ __init__.py
-│  │  ├─ model_expert.py
-│  │  └─ service_order.py
+│  │  ├─ customer.py
+│  │  ├─ expert.py
+│  │  ├─ service_order.py
+│  │  ├─ type_service.py
+│  │  └─ user.py
 │  ├─ routes
-│  │  └─ __init__.py
+│  │  ├─ __init__.py
+│  │  └─ login.py
 │  ├─ service
-│  │  └─ __init__.py
+│  │  ├─ __init__.py
+│  │  ├─ customer_service.py
+│  │  ├─ expert_service.py
+│  │  ├─ login_service.py
+│  │  ├─ service_order_service.py
+│  │  ├─ type_service_service.py
+│  │  └─ user_service.py
 │  ├─ static
+│  │  ├─ css
+│  │  │  └─ style_login.css
+│  │  └─ js
+│  │     └─ script_login.js
 │  ├─ templates
+│  │  └─ login.html
 │  └─ utils
 │     └─ __init__.py
-└venv
+├─ docs
+│  └─ README.md
+├─ requirements.txt
+└─ run.py
 
 ```
 
