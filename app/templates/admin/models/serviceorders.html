@@ -1,0 +1,192 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Ordens de Serviço - Meta Técnicos Admin{% endblock %}
+
+{% block page_title %}Gerenciar Ordens de Serviço{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Ordens de Serviço</h1>
+        <p class="text-gray-400">Gerencie todas as ordens de serviço</p>
+    </div>
+    <button id="addServiceOrderBtn"
+        class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 shadow-lg">
+        <i class="fas fa-plus"></i>
+        <span>Nova OS</span>
+    </button>
+</div>
+
+<!-- Filters and Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-4 border border-cyan-900/30">
+        <div class="text-center">
+            <p class="text-cyan-400 text-sm">Total</p>
+            <h3 class="text-xl font-bold text-white">{{ service_orders|length }}</h3>
+        </div>
+    </div>
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-4 border border-cyan-900/30">
+        <div class="text-center">
+            <p class="text-green-400 text-sm">Concluídas</p>
+            <h3 class="text-xl font-bold text-white">{{ completed_orders }}</h3>
+        </div>
+    </div>
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-4 border border-cyan-900/30">
+        <div class="text-center">
+            <p class="text-yellow-400 text-sm">Pendentes</p>
+            <h3 class="text-xl font-bold text-white">{{ pending_orders }}</h3>
+        </div>
+    </div>
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-4 border border-cyan-900/30">
+        <div class="text-center">
+            <p class="text-cyan-400 text-sm">Em Andamento</p>
+            <h3 class="text-xl font-bold text-white">{{ in_progress_orders }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Service Orders Table -->
+<div class="bg-gray-800/50 rounded-xl border border-cyan-900/30 shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-700/50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">OS</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Cliente
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Serviço
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Técnico
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Data</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Status
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Ações
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700/30">
+                {% for order in service_orders %}
+                <tr class="hover:bg-gray-700/30 transition-colors duration-150">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-white">{{ order.id_OS }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-white">{{ order.customer.name }}</div>
+                        <div class="text-xs text-gray-400">{{ order.customer.contract_id }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-white">{{ order.type_service.name }}</div>
+                        <div class="text-xs text-gray-400 truncate max-w-xs">{{ order.reported_problem }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-300">{{ order.expert.name }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-300">{{ order.appointment_date.strftime('%d/%m/%Y') }}</div>
+                        <div class="text-xs text-gray-500">{{ order.appointment_date.strftime('%H:%M') }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if order.completion_date %}bg-green-900/30 text-green-400
+                            {% else %}bg-yellow-900/30 text-yellow-400{% endif %}">
+                            {% if order.completion_date %}Concluído{% else %}Pendente{% endif %}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <button class="edit-btn text-cyan-400 hover:text-cyan-300 transition-colors"
+                                data-id="{{ order.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn text-red-400 hover:text-red-300 transition-colors"
+                                data-id="{{ order.id }}" data-name="{{ order.id_OS }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% if not order.completion_date %}
+                            <button class="complete-btn text-green-400 hover:text-green-300 transition-colors"
+                                data-id="{{ order.id }}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Service Order Modal -->
+<div id="serviceOrderModal" class="modal hidden">
+    <div class="modal-content max-w-2xl">
+        <div class="modal-icon">
+            <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h3 class="modal-title" id="serviceOrderModalTitle">Nova Ordem de Serviço</h3>
+        <form id="serviceOrderForm" class="space-y-4 mt-4">
+            <input type="hidden" id="serviceOrderId">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="customer_id" class="input-label">Cliente</label>
+                    <select id="customer_id" class="input-field" required>
+                        <option value="">Selecione um cliente</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.name }} - {{ customer.contract_id }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="type_service_id" class="input-label">Tipo de Serviço</label>
+                    <select id="type_service_id" class="input-field" required>
+                        <option value="">Selecione um serviço</option>
+                        {% for type_service in typeservices %}
+                        <option value="{{ type_service.id }}">{{ type_service.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="expert_id" class="input-label">Técnico</label>
+                    <select id="expert_id" class="input-field" required>
+                        <option value="">Selecione um técnico</option>
+                        {% for expert in experts %}
+                        <option value="{{ expert.id }}">{{ expert.name }} - {{ expert.field }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="id_OS" class="input-label">ID da OS</label>
+                    <input type="text" id="id_OS" class="input-field" placeholder="Número da OS" required>
+                </div>
+            </div>
+            <div>
+                <label for="appointment_date" class="input-label">Data do Agendamento</label>
+                <input type="datetime-local" id="appointment_date" class="input-field" required>
+            </div>
+            <div>
+                <label for="reported_problem" class="input-label">Problema Relatado</label>
+                <textarea id="reported_problem" class="input-field" placeholder="Descreva o problema relatado" rows="3"
+                    required></textarea>
+            </div>
+            <div>
+                <label for="service_provided" class="input-label">Serviço Prestado</label>
+                <input type="text" id="service_provided" class="input-field" placeholder="Serviço a ser prestado"
+                    required>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button type="button" id="cancelServiceOrder"
+                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white py-2 rounded-lg transition-all duration-200">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

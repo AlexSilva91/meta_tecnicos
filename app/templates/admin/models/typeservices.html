@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Tipos de Serviço - Meta Técnicos Admin{% endblock %}
+
+{% block page_title %}Gerenciar Tipos de Serviço{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Tipos de Serviço</h1>
+        <p class="text-gray-400">Gerencie os tipos de serviços disponíveis</p>
+    </div>
+    <button id="addTypeServiceBtn"
+        class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 shadow-lg">
+        <i class="fas fa-plus"></i>
+        <span>Novo Tipo</span>
+    </button>
+</div>
+
+<!-- Types of Service Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for type_service in typeservices %}
+    <div
+        class="bg-gradient-to-br from-blue-900/30 to-cyan-900/20 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover:border-cyan-500/50 transition-all duration-200 group">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">{{
+                    type_service.name }}</h3>
+                <p class="text-gray-400 text-sm mt-1">{{ type_service.description or "Sem descrição" }}</p>
+            </div>
+            <div class="flex space-x-2">
+                <button class="edit-btn text-cyan-400 hover:text-cyan-300 transition-colors"
+                    data-id="{{ type_service.id }}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-btn text-red-400 hover:text-red-300 transition-colors"
+                    data-id="{{ type_service.id }}" data-name="{{ type_service.name }}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="flex justify-between items-center text-sm">
+            <span class="text-cyan-400 font-medium">{{ type_service.service_orders|length }} ordens</span>
+            <span class="text-gray-500 text-xs">ID: {{ type_service.id }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add/Edit Type Service Modal -->
+<div id="typeServiceModal" class="modal hidden">
+    <div class="modal-content max-w-md">
+        <div class="modal-icon">
+            <i class="fas fa-cogs"></i>
+        </div>
+        <h3 class="modal-title" id="typeServiceModalTitle">Adicionar Tipo de Serviço</h3>
+        <form id="typeServiceForm" class="space-y-4 mt-4">
+            <input type="hidden" id="typeServiceId">
+            <div>
+                <label for="typeServiceName" class="input-label">Nome do Serviço</label>
+                <input type="text" id="typeServiceName" class="input-field" placeholder="Nome do tipo de serviço"
+                    required>
+            </div>
+            <div>
+                <label for="description" class="input-label">Descrição</label>
+                <textarea id="description" class="input-field" placeholder="Descrição do serviço" rows="3"></textarea>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button type="button" id="cancelTypeService"
+                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white py-2 rounded-lg transition-all duration-200">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

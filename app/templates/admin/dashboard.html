@@ -1,0 +1,161 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Meta Técnicos Admin{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Stat Cards -->
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-6 border border-cyan-900/30 shadow-lg">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-cyan-400 text-sm font-medium">Total de Clientes</p>
+                <h3 class="text-2xl font-bold text-white mt-2">{{ customers_count }}</h3>
+            </div>
+            <div class="p-3 bg-cyan-900/30 rounded-lg">
+                <i class="fas fa-users text-cyan-400"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-400 flex items-center">
+                <i class="fas fa-arrow-up mr-1"></i>
+                12%
+            </span>
+            <span class="text-gray-400 ml-2">desde o último mês</span>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-6 border border-cyan-900/30 shadow-lg">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-cyan-400 text-sm font-medium">Total de Técnicos</p>
+                <h3 class="text-2xl font-bold text-white mt-2">{{ experts_count }}</h3>
+            </div>
+            <div class="p-3 bg-cyan-900/30 rounded-lg">
+                <i class="fas fa-user-tie text-cyan-400"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-400 flex items-center">
+                <i class="fas fa-arrow-up mr-1"></i>
+                5%
+            </span>
+            <span class="text-gray-400 ml-2">desde o último mês</span>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-6 border border-cyan-900/30 shadow-lg">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-cyan-400 text-sm font-medium">Ordens de Serviço</p>
+                <h3 class="text-2xl font-bold text-white mt-2">{{ service_orders_count }}</h3>
+            </div>
+            <div class="p-3 bg-cyan-900/30 rounded-lg">
+                <i class="fas fa-clipboard-list text-cyan-400"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-400 flex items-center">
+                <i class="fas fa-arrow-up mr-1"></i>
+                8%
+            </span>
+            <span class="text-gray-400 ml-2">desde o último mês</span>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-6 border border-cyan-900/30 shadow-lg">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-cyan-400 text-sm font-medium">Tipos de Serviço</p>
+                <h3 class="text-2xl font-bold text-white mt-2">{{ typeservices_count }}</h3>
+            </div>
+            <div class="p-3 bg-cyan-900/30 rounded-lg">
+                <i class="fas fa-cogs text-cyan-400"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-400 flex items-center">
+                <i class="fas fa-arrow-up mr-1"></i>
+                3%
+            </span>
+            <span class="text-gray-400 ml-2">desde o último mês</span>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Recent Service Orders -->
+    <div class="bg-gray-800/50 rounded-xl p-6 border border-cyan-900/30 shadow-lg">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-white">Ordens de Serviço Recentes</h3>
+            <a href="{{ url_for('admin.admin_serviceorders') }}" class="text-cyan-400 hover:text-cyan-300 text-sm">Ver
+                todas</a>
+        </div>
+        <div class="space-y-4">
+            {% for order in recent_orders %}
+            <div class="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/30">
+                <div>
+                    <p class="font-medium text-white">{{ order.type_service.name }}</p>
+                    <p class="text-sm text-gray-400">{{ order.customer.name }} • {{
+                        order.appointment_date.strftime('%d/%m/%Y') }}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span
+                        class="px-2 py-1 text-xs rounded-full 
+                        {% if order.completion_date %}bg-green-900/30 text-green-400{% else %}bg-yellow-900/30 text-yellow-400{% endif %}">
+                        {% if order.completion_date %}Concluído{% else %}Pendente{% endif %}
+                    </span>
+                    <a href="{{ url_for('admin.admin_serviceorders') }}" class="text-cyan-400 hover:text-cyan-300">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-gray-800/50 rounded-xl p-6 border border-cyan-900/30 shadow-lg">
+        <h3 class="text-lg font-semibold text-white mb-6">Ações Rápidas</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <a href="{{ url_for('admin.admin_customers') }}"
+                class="p-4 bg-gradient-to-br from-blue-900/30 to-cyan-900/20 rounded-lg border border-cyan-900/30 hover:border-cyan-500/50 transition-all duration-200 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="p-3 bg-cyan-900/30 rounded-lg group-hover:bg-cyan-900/50 transition-colors mb-2">
+                        <i class="fas fa-user-plus text-cyan-400"></i>
+                    </div>
+                    <span class="text-white font-medium">Novo Cliente</span>
+                </div>
+            </a>
+            <a href="{{ url_for('admin.admin_serviceorders') }}"
+                class="p-4 bg-gradient-to-br from-blue-900/30 to-cyan-900/20 rounded-lg border border-cyan-900/30 hover:border-cyan-500/50 transition-all duration-200 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="p-3 bg-cyan-900/30 rounded-lg group-hover:bg-cyan-900/50 transition-colors mb-2">
+                        <i class="fas fa-clipboard-check text-cyan-400"></i>
+                    </div>
+                    <span class="text-white font-medium">Nova OS</span>
+                </div>
+            </a>
+            <a href="{{ url_for('admin.admin_experts') }}"
+                class="p-4 bg-gradient-to-br from-blue-900/30 to-cyan-900/20 rounded-lg border border-cyan-900/30 hover:border-cyan-500/50 transition-all duration-200 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="p-3 bg-cyan-900/30 rounded-lg group-hover:bg-cyan-900/50 transition-colors mb-2">
+                        <i class="fas fa-user-tie text-cyan-400"></i>
+                    </div>
+                    <span class="text-white font-medium">Novo Técnico</span>
+                </div>
+            </a>
+            <a href="{{ url_for('admin.admin_typeservices') }}"
+                class="p-4 bg-gradient-to-br from-blue-900/30 to-cyan-900/20 rounded-lg border border-cyan-900/30 hover:border-cyan-500/50 transition-all duration-200 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="p-3 bg-cyan-900/30 rounded-lg group-hover:bg-cyan-900/50 transition-colors mb-2">
+                        <i class="fas fa-cog text-cyan-400"></i>
+                    </div>
+                    <span class="text-white font-medium">Novo Serviço</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Clientes - Meta Técnicos Admin{% endblock %}
+
+{% block page_title %}Gerenciar Clientes{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Clientes</h1>
+        <p class="text-gray-400">Gerencie os clientes do sistema</p>
+    </div>
+    <button id="addCustomerBtn"
+        class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 shadow-lg">
+        <i class="fas fa-plus"></i>
+        <span>Novo Cliente</span>
+    </button>
+</div>
+
+<!-- Filters and Search -->
+<div class="bg-gray-800/50 rounded-xl p-4 mb-6 border border-cyan-900/30 shadow-lg">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+        <div class="flex-1 max-w-md">
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400"></i>
+                <input type="text" id="searchInput" placeholder="Buscar clientes..."
+                    class="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500">
+            </div>
+        </div>
+        <div class="flex space-x-4">
+            <select id="packageFilter"
+                class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-cyan-500">
+                <option value="">Todos os pacotes</option>
+                <option value="Básico">Básico</option>
+                <option value="Intermediário">Intermediário</option>
+                <option value="Premium">Premium</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="bg-gray-800/50 rounded-xl border border-cyan-900/30 shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-700/50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Cliente
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Contrato
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Pacote
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Ordens
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Ações
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700/30">
+                {% for customer in customers %}
+                <tr class="hover:bg-gray-700/30 transition-colors duration-150">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div
+                                class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white text-sm"></i>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-white">{{ customer.name }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-300">{{ customer.contract_id }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if customer.internet_package == 'Premium' %}bg-purple-900/30 text-purple-400
+                            {% elif customer.internet_package == 'Intermediário' %}bg-blue-900/30 text-blue-400
+                            {% else %}bg-gray-900/30 text-gray-400{% endif %}">
+                            {{ customer.internet_package }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                        {{ customer.service_orders|length }} ordens
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <button class="edit-btn text-cyan-400 hover:text-cyan-300 transition-colors"
+                                data-id="{{ customer.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn text-red-400 hover:text-red-300 transition-colors"
+                                data-id="{{ customer.id }}" data-name="{{ customer.name }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-6 py-4 border-t border-gray-700/30 flex items-center justify-between">
+        <div class="text-sm text-gray-400">
+            Mostrando <span class="font-medium">{{ customers|length }}</span> de <span class="font-medium">{{
+                total_count }}</span> clientes
+        </div>
+        <div class="flex space-x-2">
+            <button class="px-3 py-1 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="px-3 py-1 rounded-lg bg-cyan-600 text-white">1</button>
+            <button
+                class="px-3 py-1 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors">2</button>
+            <button class="px-3 py-1 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Customer Modal -->
+<div id="customerModal" class="modal hidden">
+    <div class="modal-content max-w-md">
+        <div class="modal-icon">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <h3 class="modal-title" id="modalTitle">Adicionar Cliente</h3>
+        <form id="customerForm" class="space-y-4 mt-4">
+            <input type="hidden" id="customerId">
+            <div>
+                <label for="name" class="input-label">Nome</label>
+                <input type="text" id="name" class="input-field" placeholder="Nome completo" required>
+            </div>
+            <div>
+                <label for="contract_id" class="input-label">ID do Contrato</label>
+                <input type="text" id="contract_id" class="input-field" placeholder="Número do contrato" required>
+            </div>
+            <div>
+                <label for="internet_package" class="input-label">Pacote de Internet</label>
+                <select id="internet_package" class="input-field" required>
+                    <option value="">Selecione um pacote</option>
+                    <option value="Básico">Básico</option>
+                    <option value="Intermediário">Intermediário</option>
+                    <option value="Premium">Premium</option>
+                </select>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button type="button" id="cancelCustomer"
+                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white py-2 rounded-lg transition-all duration-200">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Customer management JavaScript will be handled by admin.js
+</script>
+{% endblock %}

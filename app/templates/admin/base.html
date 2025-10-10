@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meta Técnicos Admin{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-gray-900 text-gray-100">
+    <!-- Sidebar -->
+    <div class="flex h-screen">
+        <div class="w-64 bg-gray-800 border-r border-cyan-900/30">
+            <!-- Logo -->
+            <div class="p-4 border-b border-cyan-900/30">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                        <i class="fas fa-tools text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white">Meta Técnicos</h1>
+                        <p class="text-xs text-cyan-400">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="{{ url_for('admin.admin_dashboard') }}"
+                            class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_dashboard' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
+                            <i class="fas fa-chart-bar w-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_customers') }}"
+                            class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_customers' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
+                            <i class="fas fa-users w-5"></i>
+                            <span>Clientes</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_experts') }}"
+                            class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_experts' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
+                            <i class="fas fa-user-tie w-5"></i>
+                            <span>Técnicos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_typeservices') }}"
+                            class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_typeservices' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
+                            <i class="fas fa-cogs w-5"></i>
+                            <span>Tipos de Serviço</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.admin_serviceorders') }}"
+                            class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_serviceorders' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
+                            <i class="fas fa-clipboard-list w-5"></i>
+                            <span>Ordens de Serviço</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-gray-800 border-b border-cyan-900/30 p-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-white">{% block page_title %}Dashboard{% endblock %}</h2>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 rounded-lg hover:bg-cyan-900/20 transition-colors">
+                            <i class="fas fa-bell text-cyan-400"></i>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <div
+                                class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                                <i class="fas fa-user text-white text-sm"></i>
+                            </div>
+                            <span class="text-sm">Admin</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="deleteModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="modal-title">Confirmar Exclusão</h3>
+            <p class="modal-message">Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+            <div class="flex space-x-3 mt-4">
+                <button id="cancelDelete" class="modal-button bg-gray-600 hover:bg-gray-700">Cancelar</button>
+                <button id="confirmDelete" class="modal-button bg-red-600 hover:bg-red-700">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="modal-title">Sucesso!</h3>
+            <p class="modal-message" id="successMessage">Operação realizada com sucesso.</p>
+            <button class="modal-button" id="closeSuccessModal">OK</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
