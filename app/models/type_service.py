@@ -5,10 +5,6 @@ class TypeService(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(200), nullable=True)
-
-    # Backref cria a lista de ServiceOrders
-    service_orders = db.relationship('ServiceOrder', backref='type_service', lazy=True)
 
     def __repr__(self):
         return f"<TypeService {self.name}>"
@@ -16,9 +12,9 @@ class TypeService(db.Model):
     # ---------- CRUD ----------
 
     @classmethod
-    def create(cls, name: str, description: str = None):
+    def create(cls, name: str):
         """Cria um novo tipo de serviço."""
-        type_service = cls(name=name, description=description)
+        type_service = cls(name=name)
         db.session.add(type_service)
         db.session.commit()
         return type_service
@@ -29,18 +25,19 @@ class TypeService(db.Model):
         return cls.query.get(type_service_id)
 
     @classmethod
+    def get_by_name(cls, name: str):
+        """Busca um tipo de serviço pelo nome."""
+        return cls.query.filter_by(name=name).first()
+
+    @classmethod
     def update(cls, type_service_id: int, **kwargs):
-        """
-        Atualiza um tipo de serviço.
-        Ex: TypeService.update(1, name="Novo Nome", description="Nova descrição")
-        """
+        """Atualiza um tipo de serviço."""
         type_service = cls.query.get(type_service_id)
         if not type_service:
             return None
-        if "name" in kwargs:
-            type_service.name = kwargs["name"]
-        if "description" in kwargs:
-            type_service.description = kwargs["description"]
+        for key, value in kwargs.items():
+            if hasattr(type_service, key):
+                setattr(type_service, key, value)
         db.session.commit()
         return type_service
 

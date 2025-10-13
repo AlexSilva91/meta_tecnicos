@@ -1,22 +1,27 @@
 from app.database import db
+from app.models.association_tables import service_order_assistants
 
 class Expert(db.Model):
     __tablename__ = 'experts'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    field = db.Column(db.String(100), nullable=False)
-    experience_years = db.Column(db.Integer, nullable=False)
+    nome = db.Column(db.String(100), nullable=False)
+
+    # Relação com ServiceOrders onde é técnico responsável
+    responsible_orders = db.relationship('ServiceOrder', foreign_keys='ServiceOrder.os_tecnico_responsavel', backref='tecnico_responsavel', lazy=True)
+    
+    # Relação com ServiceOrders onde é auxiliar
+    assistant_orders = db.relationship('ServiceOrder', secondary=service_order_assistants, backref=db.backref('os_tecnicos_auxiliares', lazy=True))
 
     def __repr__(self):
-        return f"<Expert {self.name}>"
+        return f"<Expert {self.nome}>"
 
     # ---------- CRUD ----------
 
     @classmethod
-    def create(cls, name: str, field: str, experience_years: int):
+    def create(cls, nome: str):
         """Cria um novo especialista."""
-        expert = cls(name=name, field=field, experience_years=experience_years)
+        expert = cls(nome=nome)
         db.session.add(expert)
         db.session.commit()
         return expert

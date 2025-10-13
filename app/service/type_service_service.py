@@ -3,7 +3,7 @@ from app.models.type_service import TypeService
 class TypeServiceService:
     @staticmethod
     def create_type_service(name: str, description: str = None) -> TypeService:
-        return TypeService.create(name, description)
+        return TypeService.create(name)
 
     @staticmethod
     def get_type_service_by_id(type_service_id: int) -> TypeService | None:

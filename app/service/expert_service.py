@@ -2,8 +2,8 @@ from app.models.expert import Expert
 
 class ExpertService:
     @staticmethod
-    def create_expert(name: str, field: str, experience_years: int) -> Expert:
-        return Expert.create(name, field, experience_years)
+    def create_expert(name: str) -> Expert:
+        return Expert.create(name)
 
     @staticmethod
     def get_expert_by_id(expert_id: int) -> Expert | None:

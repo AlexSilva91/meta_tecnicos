@@ -4,22 +4,22 @@ class Customer(db.Model):
     __tablename__ = 'customers'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    contract_id = db.Column(db.String(50), unique=True, nullable=False)
-    internet_package = db.Column(db.String(100), nullable=False)
+    cliente_nome = db.Column(db.String(100), nullable=False)
+    plano = db.Column(db.String(100), nullable=False)
+    id_contrato = db.Column(db.String(50), unique=True, nullable=False)
 
     # Backref cria a lista de ServiceOrders do cliente
     service_orders = db.relationship('ServiceOrder', backref='customer', lazy=True)
 
     def __repr__(self):
-        return f"<Customer {self.name}>"
+        return f"<Customer {self.cliente_nome}>"
 
-   # ---------- CRUD ----------
+    # ---------- CRUD ----------
 
     @classmethod
-    def create(cls, name: str, contract_id: str, internet_package: str):
+    def create(cls, cliente_nome: str, plano: str, id_contrato: str):
         """Cria um novo cliente."""
-        customer = cls(name=name, contract_id=contract_id, internet_package=internet_package)
+        customer = cls(cliente_nome=cliente_nome, plano=plano, id_contrato=id_contrato)
         db.session.add(customer)
         db.session.commit()
         return customer
@@ -30,9 +30,9 @@ class Customer(db.Model):
         return cls.query.get(customer_id)
 
     @classmethod
-    def get_by_contract(cls, contract_id: str):
+    def get_by_contract(cls, id_contrato: str):
         """Busca cliente pelo contrato."""
-        return cls.query.filter_by(contract_id=contract_id).first()
+        return cls.query.filter_by(id_contrato=id_contrato).first()
 
     @classmethod
     def update(cls, customer_id: int, **kwargs):
