@@ -3,17 +3,38 @@ from datetime import datetime
 
 class ServiceOrderService:
     @staticmethod
-    def create_service_order(appointment_date: datetime, reported_problem: str, service_provided: str,
-                             id_OS: str, expert_id: int, type_service_id: int, customer_id: int,
-                             completion_date: datetime = None) -> ServiceOrder:
+    def create_service_order(
+        os_id: str,
+        os_data_agendamento: datetime,
+        os_conteudo: str,
+        os_servicoprestado: str,
+        os_tecnico_responsavel: int,
+        customer_id: int,
+        type_service_id: int,
+        os_data_finalizacao: datetime = None,
+        os_data_cadastro: datetime = None,
+        assistants: list = None
+    ) -> ServiceOrder:
         return ServiceOrder.create(
-            appointment_date, reported_problem, service_provided,
-            id_OS, expert_id, type_service_id, customer_id, completion_date
+            os_id=os_id,
+            os_data_agendamento=os_data_agendamento,
+            os_conteudo=os_conteudo,
+            os_servicoprestado=os_servicoprestado,
+            os_tecnico_responsavel=os_tecnico_responsavel,
+            customer_id=customer_id,
+            type_service_id=type_service_id,
+            os_data_finalizacao=os_data_finalizacao,
+            os_data_cadastro=os_data_cadastro,
+            assistants=assistants
         )
 
     @staticmethod
     def get_service_order_by_id(order_id: int) -> ServiceOrder | None:
         return ServiceOrder.get_by_id(order_id)
+
+    @staticmethod
+    def get_service_order_by_os_id(os_id: str) -> ServiceOrder | None:
+        return ServiceOrder.get_by_os_id(os_id)
 
     @staticmethod
     def update_service_order(order_id: int, **kwargs) -> ServiceOrder | None:
@@ -26,3 +47,8 @@ class ServiceOrderService:
     @staticmethod
     def list_service_orders(limit: int = 50, offset: int = 0):
         return ServiceOrder.list(limit=limit, offset=offset)
+
+    @staticmethod
+    def complete_service_order(order_id: int) -> ServiceOrder | None:
+        """Marca uma ordem de serviço como concluída"""
+        return ServiceOrder.update(order_id, os_data_finalizacao=datetime.now())

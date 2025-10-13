@@ -69,28 +69,30 @@
                 {% for order in service_orders %}
                 <tr class="hover:bg-gray-700/30 transition-colors duration-150">
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-white">{{ order.id_OS }}</div>
+                        <div class="text-sm font-medium text-white">{{ order.os_id }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-white">{{ order.customer.name }}</div>
-                        <div class="text-xs text-gray-400">{{ order.customer.contract_id }}</div>
+                        <div class="text-sm text-white">{{ order.customer.cliente_nome }}</div>
+                        <div class="text-xs text-gray-400">{{ order.customer.id_contrato }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-white">{{ order.type_service.name }}</div>
-                        <div class="text-xs text-gray-400 truncate max-w-xs">{{ order.reported_problem }}</div>
+                        <div class="text-sm text-white">{{ order.type_service.name if order.type_service else 'Sem tipo'
+                            }}</div>
+                        <div class="text-xs text-gray-400 truncate max-w-xs">{{ order.os_conteudo }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-300">{{ order.expert.name }}</div>
+                        <div class="text-sm text-gray-300">{{ order.tecnico_responsavel.nome if
+                            order.tecnico_responsavel else 'N/A' }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-300">{{ order.appointment_date.strftime('%d/%m/%Y') }}</div>
-                        <div class="text-xs text-gray-500">{{ order.appointment_date.strftime('%H:%M') }}</div>
+                        <div class="text-sm text-gray-300">{{ order.os_data_agendamento.strftime('%d/%m/%Y') }}</div>
+                        <div class="text-xs text-gray-500">{{ order.os_data_agendamento.strftime('%H:%M') }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 py-1 text-xs rounded-full 
-                            {% if order.completion_date %}bg-green-900/30 text-green-400
+                            {% if order.os_data_finalizacao %}bg-green-900/30 text-green-400
                             {% else %}bg-yellow-900/30 text-yellow-400{% endif %}">
-                            {% if order.completion_date %}Concluído{% else %}Pendente{% endif %}
+                            {% if order.os_data_finalizacao %}Concluído{% else %}Pendente{% endif %}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -100,10 +102,10 @@
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button class="delete-btn text-red-400 hover:text-red-300 transition-colors"
-                                data-id="{{ order.id }}" data-name="{{ order.id_OS }}">
+                                data-id="{{ order.id }}" data-name="{{ order.os_id }}">
                                 <i class="fas fa-trash"></i>
                             </button>
-                            {% if not order.completion_date %}
+                            {% if not order.os_data_finalizacao %}
                             <button class="complete-btn text-green-400 hover:text-green-300 transition-colors"
                                 data-id="{{ order.id }}">
                                 <i class="fas fa-check"></i>
@@ -133,7 +135,8 @@
                     <select id="customer_id" class="input-field" required>
                         <option value="">Selecione um cliente</option>
                         {% for customer in customers %}
-                        <option value="{{ customer.id }}">{{ customer.name }} - {{ customer.contract_id }}</option>
+                        <option value="{{ customer.id }}">{{ customer.cliente_nome }} - {{ customer.id_contrato }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -149,32 +152,41 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="expert_id" class="input-label">Técnico</label>
-                    <select id="expert_id" class="input-field" required>
+                    <label for="os_tecnico_responsavel" class="input-label">Técnico Responsável</label>
+                    <select id="os_tecnico_responsavel" class="input-field" required>
                         <option value="">Selecione um técnico</option>
                         {% for expert in experts %}
-                        <option value="{{ expert.id }}">{{ expert.name }} - {{ expert.field }}</option>
+                        <option value="{{ expert.id }}">{{ expert.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label for="id_OS" class="input-label">ID da OS</label>
-                    <input type="text" id="id_OS" class="input-field" placeholder="Número da OS" required>
+                    <label for="os_id" class="input-label">ID da OS</label>
+                    <input type="text" id="os_id" class="input-field" placeholder="Número da OS" required>
                 </div>
             </div>
             <div>
-                <label for="appointment_date" class="input-label">Data do Agendamento</label>
-                <input type="datetime-local" id="appointment_date" class="input-field" required>
+                <label for="os_data_agendamento" class="input-label">Data do Agendamento</label>
+                <input type="datetime-local" id="os_data_agendamento" class="input-field" required>
             </div>
             <div>
-                <label for="reported_problem" class="input-label">Problema Relatado</label>
-                <textarea id="reported_problem" class="input-field" placeholder="Descreva o problema relatado" rows="3"
+                <label for="os_conteudo" class="input-label">Conteúdo/Problema</label>
+                <textarea id="os_conteudo" class="input-field" placeholder="Descreva o problema relatado" rows="3"
                     required></textarea>
             </div>
             <div>
-                <label for="service_provided" class="input-label">Serviço Prestado</label>
-                <input type="text" id="service_provided" class="input-field" placeholder="Serviço a ser prestado"
+                <label for="os_servicoprestado" class="input-label">Serviço Prestado</label>
+                <input type="text" id="os_servicoprestado" class="input-field" placeholder="Serviço a ser prestado"
                     required>
+            </div>
+            <div>
+                <label for="assistants" class="input-label">Técnicos Auxiliares</label>
+                <select id="assistants" class="input-field" multiple>
+                    {% for expert in experts %}
+                    <option value="{{ expert.id }}">{{ expert.nome }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Segure Ctrl para selecionar múltiplos técnicos</p>
             </div>
             <div class="flex space-x-3 mt-6">
                 <button type="button" id="cancelServiceOrder"

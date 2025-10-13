@@ -25,12 +25,10 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Técnico
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">
-                        Especialidade</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">
-                        Experiência</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Ordens
-                        Ativas</th>
+                        Responsável</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Ordens
+                        Auxiliar</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-cyan-400 uppercase tracking-wider">Ações
                     </th>
                 </tr>
@@ -45,21 +43,21 @@
                                 <i class="fas fa-user-tie text-white text-sm"></i>
                             </div>
                             <div class="ml-4">
-                                <div class="text-sm font-medium text-white">{{ expert.name }}</div>
+                                <div class="text-sm font-medium text-white">{{ expert.nome }}</div>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-300">{{ expert.field }}</div>
+                        <span
+                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-900/30 text-blue-400">
+                            {{ expert.responsible_orders|length }} ordens
+                        </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span
                             class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-cyan-900/30 text-cyan-400">
-                            {{ expert.experience_years }} anos
+                            {{ expert.assistant_orders|length }} ordens
                         </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {{ expert.service_orders|length }} ordens
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
@@ -68,7 +66,7 @@
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button class="delete-btn text-red-400 hover:text-red-300 transition-colors"
-                                data-id="{{ expert.id }}" data-name="{{ expert.name }}">
+                                data-id="{{ expert.id }}" data-name="{{ expert.nome }}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -90,17 +88,8 @@
         <form id="expertForm" class="space-y-4 mt-4">
             <input type="hidden" id="expertId">
             <div>
-                <label for="expertName" class="input-label">Nome</label>
-                <input type="text" id="expertName" class="input-field" placeholder="Nome completo" required>
-            </div>
-            <div>
-                <label for="field" class="input-label">Especialidade</label>
-                <input type="text" id="field" class="input-field" placeholder="Área de especialização" required>
-            </div>
-            <div>
-                <label for="experience_years" class="input-label">Anos de Experiência</label>
-                <input type="number" id="experience_years" class="input-field" placeholder="Número de anos" min="0"
-                    required>
+                <label for="nome" class="input-label">Nome</label>
+                <input type="text" id="nome" class="input-field" placeholder="Nome completo" required>
             </div>
             <div class="flex space-x-3 mt-6">
                 <button type="button" id="cancelExpert"

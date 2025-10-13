@@ -2,12 +2,16 @@ from app.models.expert import Expert
 
 class ExpertService:
     @staticmethod
-    def create_expert(name: str) -> Expert:
-        return Expert.create(name)
+    def create_expert(nome: str) -> Expert:
+        return Expert.create(nome=nome)
 
     @staticmethod
     def get_expert_by_id(expert_id: int) -> Expert | None:
         return Expert.get_by_id(expert_id)
+
+    @staticmethod
+    def get_expert_by_name(nome: str) -> Expert | None:
+        return Expert.get_by_name(nome)
 
     @staticmethod
     def update_expert(expert_id: int, **kwargs) -> Expert | None:
