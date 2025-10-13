@@ -9,6 +9,7 @@ O presente projeto visa realizar a coleta de informações de serviços realizad
 
 ```
 meta_tecnicos
+├─ README.md
 ├─ app
 │  ├─ __init__.py
 │  ├─ database
@@ -16,17 +17,49 @@ meta_tecnicos
 │  │  └─ connection.py
 │  ├─ models
 │  │  ├─ __init__.py
-│  │  ├─ model_expert.py
-│  │  └─ service_order.py
+│  │  ├─ association_tables.py
+│  │  ├─ customer.py
+│  │  ├─ expert.py
+│  │  ├─ service_order.py
+│  │  ├─ type_service.py
+│  │  └─ user.py
 │  ├─ routes
-│  │  └─ __init__.py
+│  │  ├─ __init__.py
+│  │  ├─ admin_route.py
+│  │  └─ login.py
 │  ├─ service
-│  │  └─ __init__.py
+│  │  ├─ __init__.py
+│  │  ├─ customer_service.py
+│  │  ├─ expert_service.py
+│  │  ├─ login_service.py
+│  │  ├─ service_order_service.py
+│  │  ├─ type_service_service.py
+│  │  └─ user_service.py
 │  ├─ static
+│  │  ├─ css
+│  │  │  ├─ admin.css
+│  │  │  └─ style_login.css
+│  │  └─ js
+│  │     ├─ admin.js
+│  │     └─ script_login.js
 │  ├─ templates
+│  │  ├─ admin
+│  │  │  ├─ base.html
+│  │  │  ├─ dashboard.html
+│  │  │  └─ models
+│  │  │     ├─ customers.html
+│  │  │     ├─ experts.html
+│  │  │     ├─ serviceorders.html
+│  │  │     └─ typeservices.html
+│  │  └─ login.html
 │  └─ utils
 │     └─ __init__.py
-└venv
+├─ docs
+│  └─ README.md
+├─ requirements.txt
+├─ run.py
+└─ tests
+   └─ busca_OS.py
 
 ```
 
@@ -52,25 +85,32 @@ Esse projeto é usado pelas seguintes empresas:
 Clone o projeto
 
 ```bash
-  git clone https://link-para-o-projeto
+  git clone git@github.com:AlexSilva91/meta_tecnicos.git
 ```
 
 Entre no diretório do projeto
 
 ```bash
-  cd my-project
+  cd meta_tecnicos
+```
+
+Criar e Ativar ambiente virtual
+
+```bash
+  python -m venv .venv
+  source .venv/bin/activate
 ```
 
 Instale as dependências
 
 ```bash
-  npm install
+  pip install -r requirements.txt
 ```
 
 Inicie o servidor
 
 ```bash
-  npm run start
+  python run.py
 ```
 
 ## Aprendizados

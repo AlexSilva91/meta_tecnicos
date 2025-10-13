@@ -17,6 +17,7 @@ meta_tecnicos
 │  │  └─ connection.py
 │  ├─ models
 │  │  ├─ __init__.py
+│  │  ├─ association_tables.py
 │  │  ├─ customer.py
 │  │  ├─ expert.py
 │  │  ├─ service_order.py
@@ -24,6 +25,7 @@ meta_tecnicos
 │  │  └─ user.py
 │  ├─ routes
 │  │  ├─ __init__.py
+│  │  ├─ admin_route.py
 │  │  └─ login.py
 │  ├─ service
 │  │  ├─ __init__.py
@@ -35,17 +37,29 @@ meta_tecnicos
 │  │  └─ user_service.py
 │  ├─ static
 │  │  ├─ css
+│  │  │  ├─ admin.css
 │  │  │  └─ style_login.css
 │  │  └─ js
+│  │     ├─ admin.js
 │  │     └─ script_login.js
 │  ├─ templates
+│  │  ├─ admin
+│  │  │  ├─ base.html
+│  │  │  ├─ dashboard.html
+│  │  │  └─ models
+│  │  │     ├─ customers.html
+│  │  │     ├─ experts.html
+│  │  │     ├─ serviceorders.html
+│  │  │     └─ typeservices.html
 │  │  └─ login.html
 │  └─ utils
 │     └─ __init__.py
 ├─ docs
 │  └─ README.md
 ├─ requirements.txt
-└─ run.py
+├─ run.py
+└─ tests
+   └─ busca_OS.py
 
 ```
 

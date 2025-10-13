@@ -2,6 +2,8 @@ from app.database import db
 from datetime import datetime
 
 from app.models.expert import Expert
+from app.models.type_service import TypeService
+
 class ServiceOrder(db.Model):
     __tablename__ = 'service_orders'
     
@@ -12,7 +14,10 @@ class ServiceOrder(db.Model):
     os_data_finalizacao = db.Column(db.DateTime, nullable=True)
     os_conteudo = db.Column(db.String(200), nullable=False)
     os_servicoprestado = db.Column(db.String(100), nullable=False)
-    os_motivo_descricao = db.Column(db.String(200), nullable=False)
+    
+    # 🔹 Relacionamento com TypeService
+    type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
+    type_service = db.relationship("TypeService", backref="service_orders")
     
     # Foreign keys
     os_tecnico_responsavel = db.Column(db.Integer, db.ForeignKey('experts.id'), nullable=False)
@@ -25,20 +30,21 @@ class ServiceOrder(db.Model):
 
     @classmethod
     def create(cls, os_id: str, os_data_agendamento: datetime, os_conteudo: str, 
-               os_servicoprestado: str, os_motivo_descricao: str, os_tecnico_responsavel: int, 
-               customer_id: int, os_data_finalizacao: datetime = None, 
-               os_data_cadastro: datetime = None, assistants: list = None):
+            os_servicoprestado: str, os_tecnico_responsavel: int, 
+            customer_id: int, type_service_id: int = None,
+            os_data_finalizacao: datetime = None, 
+            os_data_cadastro: datetime = None, assistants: list = None):
         """Cria uma nova ServiceOrder."""
         order = cls(
             os_id=os_id,
             os_data_agendamento=os_data_agendamento,
-            os_data_cadastro=os_data_cadastro or datetime.utcnow(),
+            os_data_cadastro=os_data_cadastro or datetime.now(),
             os_data_finalizacao=os_data_finalizacao,
             os_conteudo=os_conteudo,
             os_servicoprestado=os_servicoprestado,
-            os_motivo_descricao=os_motivo_descricao,
             os_tecnico_responsavel=os_tecnico_responsavel,
-            customer_id=customer_id
+            customer_id=customer_id,
+            type_service_id=type_service_id  # 🔹 adicionando TypeService
         )
         db.session.add(order)
         
@@ -51,6 +57,7 @@ class ServiceOrder(db.Model):
         
         db.session.commit()
         return order
+
 
     @classmethod
     def get_by_id(cls, order_id: int):

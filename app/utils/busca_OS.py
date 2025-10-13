@@ -102,29 +102,3 @@ def executar_busca_os_ids(token: str, app: str, base_url: str, os_ids: list, arq
 
     salvar_json(resultados, arquivo_saida)
 
-# ----------------- Execução principal ----------------- #
-# if __name__ == "__main__":
-#     TOKEN = "1eb4fb6f-c527-458e-8e95-562df138de59"
-#     APP = "metricas"
-#     DATA_DESEJADA = "2025-09-17"
-
-#     BASE_URL = "https://ourinet.sgplocal.com.br"
-#     URL_OS = f"{BASE_URL}/api/ura/ordemservico/list/"
-#     URL_OCORRENCIA = f"{BASE_URL}/api/ura/ocorrencia/list/"
-#     URL_TECNICOS = f"{BASE_URL}/api/ura/tecnicos/"
-
-#     # 1️⃣ Buscar e salvar O.S. finalizadas
-#     os_dados = executar_os(TOKEN, APP, URL_OS, "os_finalizadas.json", DATA_DESEJADA)
-
-#     # 2️⃣ Extrair os_ids da chave "ordens_servicos"
-#     os_ids = [os["id"] for os in os_dados.get("ordens_servicos", []) if "id" in os]
-#     print(f"📦 Total de OS finalizadas encontradas: {len(os_ids)}")
-
-#     # 3️⃣ Buscar detalhes por OS_ID e salvar
-#     executar_busca_os_ids(TOKEN, APP, BASE_URL, os_ids, "os_detalhadas_por_id.json")
-
-#     # 4️⃣ Buscar e salvar Ocorrências
-#     executar_ocorrencias(TOKEN, APP, URL_OCORRENCIA, "ocorrencias_finalizadas.json", DATA_DESEJADA)
-
-#     # 5️⃣ Listar e salvar Técnicos
-#     executar_tecnicos(TOKEN, APP, URL_TECNICOS, "tecnicos.json")
