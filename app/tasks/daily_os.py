@@ -12,9 +12,9 @@ from app.utils.busca_OS import buscar_os, buscar_os_por_id, listar_tecnicos
 load_dotenv()
 
 # Configurações principais do .env
-TOKEN = os.getenv("OS_API_TOKEN")
-APP_NAME = os.getenv("OS_APP_NAME")
-BASE_URL = os.getenv("OS_BASE_URL")
+TOKEN = os.getenv("TOKEN")
+APP_NAME = os.getenv("APP_NAME")
+BASE_URL = os.getenv("BASE_URL")
 DATA = os.getenv("OS_DATA", datetime.today().strftime("%Y-%m-%d"))
 HORARIO_EXECUCAO = os.getenv("OS_EXECUTION_HOUR")  
 

@@ -65,6 +65,11 @@ class ServiceOrder(db.Model):
         return cls.query.get(order_id)
 
     @classmethod
+    def get_by_os_id(cls, os_id):
+        """Busca uma OS pelo os_id."""
+        return cls.query.filter_by(os_id=os_id).first()
+    
+    @classmethod
     def get_by_os_id(cls, os_id: str):
         """Busca ServiceOrder pelo ID da OS."""
         return cls.query.filter_by(os_id=os_id).first()

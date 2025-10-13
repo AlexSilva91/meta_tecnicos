@@ -97,46 +97,45 @@ def salvar_ordens_servico(dados_os_detalhadas, tecnicos_salvos):
         list: Lista de IDs das ordens de serviço salvas
     """
     ordens_salvas = []
-    
+
     if not isinstance(dados_os_detalhadas, dict):
         print("❌ Formato inválido para dados de OS detalhadas")
         return ordens_salvas
-    
+
     for os_id, os_data in dados_os_detalhadas.items():
         try:
-            # Pular se não for um dicionário válido
             if not isinstance(os_data, dict):
                 continue
-            
-            # 1. Primeiro, salvar/verificar o cliente
+
+            # 1️⃣ Salvar ou buscar cliente
             cliente_id = salvar_ou_buscar_cliente(os_data)
             if not cliente_id:
                 print(f"  ⚠️ Não foi possível salvar cliente para OS {os_id}")
                 continue
-            
-            # 2. Preparar dados da ordem de serviço
+
+            # 2️⃣ Preparar dados
             dados_os = preparar_dados_os(os_data, tecnicos_salvos, cliente_id)
             if not dados_os:
                 continue
-            
-            # 3. Verificar se a OS já existe
+
+            # 3️⃣ Verificar existência da OS
             os_existente = ServiceOrder.get_by_os_id(os_id)
             if os_existente:
-                # Atualizar OS existente
                 ServiceOrder.update(os_existente.id, **dados_os)
                 ordens_salvas.append(os_existente.id)
                 print(f"  🔄 OS atualizada: {os_id}")
             else:
-                # Criar nova OS
                 nova_os = ServiceOrder.create(**dados_os)
                 ordens_salvas.append(nova_os.id)
                 print(f"  📝 OS salva: {os_id} - Cliente: {os_data.get('cliente', 'N/A')}")
-                
+
         except Exception as e:
+            from app.database import db
+            db.session.rollback()
             print(f"  ❌ Erro ao salvar OS {os_id}: {e}")
-            continue
-    
+
     return ordens_salvas
+
 
 def salvar_ou_buscar_cliente(os_data):
     """
