@@ -6,25 +6,24 @@ from app.service.expert_service import ExpertService
 from app.service.service_order_service import ServiceOrderService
 from app.service.type_service_service import TypeServiceService
 
-
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/')
 def admin_dashboard():
     """Dashboard principal do admin"""
-    customers_count = CustomerService.list_customers(limit=1000)  # Usar count seria melhor
-    experts_count = ExpertService.list_experts(limit=1000)
-    service_orders_count = ServiceOrderService.list_service_orders(limit=1000)
-    typeservices_count = TypeServiceService.list_type_services(limit=1000)
+    customers = CustomerService.list_customers()
+    experts = ExpertService.list_experts()
+    service_orders = ServiceOrderService.list_service_orders()
+    typeservices = TypeServiceService.list_type_services()
     
-    # Últimas ordens de serviço
-    recent_orders = ServiceOrderService.list_service_orders(limit=5)
+    # Últimas ordens de serviço (5 mais recentes)
+    recent_orders = sorted(service_orders, key=lambda x: x.os_data_agendamento, reverse=True)[:5]
     
     return render_template('admin/dashboard.html',
-                         customers_count=len(customers_count),
-                         experts_count=len(experts_count),
-                         service_orders_count=len(service_orders_count),
-                         typeservices_count=len(typeservices_count),
+                         customers_count=len(customers),
+                         experts_count=len(experts),
+                         service_orders_count=len(service_orders),
+                         typeservices_count=len(typeservices),
                          recent_orders=recent_orders)
 
 @admin_bp.route('/customers')
@@ -54,34 +53,37 @@ def admin_serviceorders():
     typeservices = TypeServiceService.list_type_services()
     
     # Estatísticas
-    completed_orders = [so for so in service_orders if so.os_data_finalizacao]
-    pending_orders = [so for so in service_orders if not so.os_data_finalizacao]
+    completed_orders = len([so for so in service_orders if so.os_data_finalizacao])
+    pending_orders = len([so for so in service_orders if not so.os_data_finalizacao])
     
     return render_template('admin/models/serviceorders.html',
                          service_orders=service_orders,
                          customers=customers,
                          experts=experts,
                          typeservices=typeservices,
-                         completed_orders=len(completed_orders),
-                         pending_orders=len(pending_orders),
-                         in_progress_orders=len(pending_orders))
+                         completed_orders=completed_orders,
+                         pending_orders=pending_orders,
+                         in_progress_orders=pending_orders)
 
 # API Routes para CRUD operations
 @admin_bp.route('/api/customers', methods=['GET', 'POST'])
 def api_customers():
     if request.method == 'POST':
         data = request.get_json()
-        customer = CustomerService.create_customer(
-            cliente_nome=data['cliente_nome'],
-            plano=data['plano'],
-            id_contrato=data['id_contrato']
-        )
-        return jsonify({'success': True, 'customer': {
-            'id': customer.id,
-            'cliente_nome': customer.cliente_nome,
-            'plano': customer.plano,
-            'id_contrato': customer.id_contrato
-        }})
+        try:
+            customer = CustomerService.create_customer(
+                cliente_nome=data['cliente_nome'],
+                plano=data['plano'],
+                id_contrato=data['id_contrato']
+            )
+            return jsonify({'success': True, 'customer': {
+                'id': customer.id,
+                'cliente_nome': customer.cliente_nome,
+                'plano': customer.plano,
+                'id_contrato': customer.id_contrato
+            }})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
     
     # GET - Listar clientes
     customers = CustomerService.list_customers()
@@ -92,9 +94,20 @@ def api_customers():
         'id_contrato': c.id_contrato
     } for c in customers])
 
-@admin_bp.route('/api/customers/<int:customer_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
 def api_customer(customer_id):
-    if request.method == 'PUT':
+    if request.method == 'GET':
+        customer = CustomerService.get_customer_by_id(customer_id)
+        if customer:
+            return jsonify({
+                'id': customer.id,
+                'cliente_nome': customer.cliente_nome,
+                'plano': customer.plano,
+                'id_contrato': customer.id_contrato
+            })
+        return jsonify({'success': False, 'error': 'Cliente não encontrado'}), 404
+    
+    elif request.method == 'PUT':
         data = request.get_json()
         customer = CustomerService.update_customer(customer_id, **data)
         if customer:
@@ -114,13 +127,14 @@ def api_customer(customer_id):
 def api_experts():
     if request.method == 'POST':
         data = request.get_json()
-        expert = ExpertService.create_expert(
-            nome=data['nome']
-        )
-        return jsonify({'success': True, 'expert': {
-            'id': expert.id,
-            'nome': expert.nome
-        }})
+        try:
+            expert = ExpertService.create_expert(nome=data['nome'])
+            return jsonify({'success': True, 'expert': {
+                'id': expert.id,
+                'nome': expert.nome
+            }})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
     
     experts = ExpertService.list_experts()
     return jsonify([{
@@ -128,9 +142,18 @@ def api_experts():
         'nome': e.nome
     } for e in experts])
 
-@admin_bp.route('/api/experts/<int:expert_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/experts/<int:expert_id>', methods=['GET', 'PUT', 'DELETE'])
 def api_expert(expert_id):
-    if request.method == 'PUT':
+    if request.method == 'GET':
+        expert = ExpertService.get_expert_by_id(expert_id)
+        if expert:
+            return jsonify({
+                'id': expert.id,
+                'nome': expert.nome
+            })
+        return jsonify({'success': False, 'error': 'Técnico não encontrado'}), 404
+    
+    elif request.method == 'PUT':
         data = request.get_json()
         expert = ExpertService.update_expert(expert_id, **data)
         if expert:
@@ -148,13 +171,14 @@ def api_expert(expert_id):
 def api_typeservices():
     if request.method == 'POST':
         data = request.get_json()
-        type_service = TypeServiceService.create_type_service(
-            name=data['name']
-        )
-        return jsonify({'success': True, 'type_service': {
-            'id': type_service.id,
-            'name': type_service.name
-        }})
+        try:
+            type_service = TypeServiceService.create_type_service(name=data['name'])
+            return jsonify({'success': True, 'type_service': {
+                'id': type_service.id,
+                'name': type_service.name
+            }})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
     
     typeservices = TypeServiceService.list_type_services()
     return jsonify([{
@@ -162,9 +186,18 @@ def api_typeservices():
         'name': ts.name
     } for ts in typeservices])
 
-@admin_bp.route('/api/typeservices/<int:type_service_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/typeservices/<int:type_service_id>', methods=['GET', 'PUT', 'DELETE'])
 def api_typeservice(type_service_id):
-    if request.method == 'PUT':
+    if request.method == 'GET':
+        type_service = TypeServiceService.get_type_service_by_id(type_service_id)
+        if type_service:
+            return jsonify({
+                'id': type_service.id,
+                'name': type_service.name
+            })
+        return jsonify({'success': False, 'error': 'Tipo de serviço não encontrado'}), 404
+    
+    elif request.method == 'PUT':
         data = request.get_json()
         type_service = TypeServiceService.update_type_service(type_service_id, **data)
         if type_service:
@@ -183,31 +216,32 @@ def api_serviceorders():
     if request.method == 'POST':
         data = request.get_json()
         
-        # Converter datas
-        os_data_agendamento = datetime.fromisoformat(data['os_data_agendamento'])
-        os_data_finalizacao = datetime.fromisoformat(data['os_data_finalizacao']) if data.get('os_data_finalizacao') else None
-        os_data_cadastro = datetime.fromisoformat(data['os_data_cadastro']) if data.get('os_data_cadastro') else None
-        
-        service_order = ServiceOrderService.create_service_order(
-            os_id=data['os_id'],
-            os_data_agendamento=os_data_agendamento,
-            os_conteudo=data['os_conteudo'],
-            os_servicoprestado=data['os_servicoprestado'],
-            os_tecnico_responsavel=data['os_tecnico_responsavel'],
-            customer_id=data['customer_id'],
-            type_service_id=data['type_service_id'],
-            os_data_finalizacao=os_data_finalizacao,
-            os_data_cadastro=os_data_cadastro,
-            assistants=data.get('assistants', [])
-        )
-        return jsonify({'success': True, 'service_order': {
-            'id': service_order.id,
-            'os_id': service_order.os_id,
-            'os_data_agendamento': service_order.os_data_agendamento.isoformat(),
-            'os_data_finalizacao': service_order.os_data_finalizacao.isoformat() if service_order.os_data_finalizacao else None,
-            'os_conteudo': service_order.os_conteudo,
-            'os_servicoprestado': service_order.os_servicoprestado
-        }})
+        try:
+            # Converter datas
+            os_data_agendamento = datetime.fromisoformat(data['os_data_agendamento'].replace('Z', '+00:00'))
+            os_data_finalizacao = datetime.fromisoformat(data['os_data_finalizacao'].replace('Z', '+00:00')) if data.get('os_data_finalizacao') else None
+            
+            service_order = ServiceOrderService.create_service_order(
+                os_id=data['os_id'],
+                os_data_agendamento=os_data_agendamento,
+                os_conteudo=data['os_conteudo'],
+                os_servicoprestado=data['os_servicoprestado'],
+                os_tecnico_responsavel=data['os_tecnico_responsavel'],
+                customer_id=data['customer_id'],
+                type_service_id=data['type_service_id'],
+                os_data_finalizacao=os_data_finalizacao,
+                assistants=data.get('assistants', [])
+            )
+            return jsonify({'success': True, 'service_order': {
+                'id': service_order.id,
+                'os_id': service_order.os_id,
+                'os_data_agendamento': service_order.os_data_agendamento.isoformat(),
+                'os_data_finalizacao': service_order.os_data_finalizacao.isoformat() if service_order.os_data_finalizacao else None,
+                'os_conteudo': service_order.os_conteudo,
+                'os_servicoprestado': service_order.os_servicoprestado
+            }})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
     
     service_orders = ServiceOrderService.list_service_orders()
     return jsonify([{
@@ -220,20 +254,35 @@ def api_serviceorders():
         'customer_id': so.customer_id,
         'os_tecnico_responsavel': so.os_tecnico_responsavel,
         'type_service_id': so.type_service_id,
-        'assistants': so.get_assistants_ids()
+        'assistants': [a.id for a in so.os_tecnicos_auxiliares]
     } for so in service_orders])
 
-@admin_bp.route('/api/serviceorders/<int:order_id>', methods=['PUT', 'DELETE'])
+@admin_bp.route('/api/serviceorders/<int:order_id>', methods=['GET', 'PUT', 'DELETE'])
 def api_serviceorder(order_id):
-    if request.method == 'PUT':
+    if request.method == 'GET':
+        service_order = ServiceOrderService.get_service_order_by_id(order_id)
+        if service_order:
+            return jsonify({
+                'id': service_order.id,
+                'os_id': service_order.os_id,
+                'os_data_agendamento': service_order.os_data_agendamento.isoformat(),
+                'os_data_finalizacao': service_order.os_data_finalizacao.isoformat() if service_order.os_data_finalizacao else None,
+                'os_conteudo': service_order.os_conteudo,
+                'os_servicoprestado': service_order.os_servicoprestado,
+                'customer_id': service_order.customer_id,
+                'os_tecnico_responsavel': service_order.os_tecnico_responsavel,
+                'type_service_id': service_order.type_service_id,
+                'assistants': [a.id for a in service_order.os_tecnicos_auxiliares]
+            })
+        return jsonify({'success': False, 'error': 'Ordem de serviço não encontrada'}), 404
+    
+    elif request.method == 'PUT':
         data = request.get_json()
         # Converter datas se fornecidas
         if 'os_data_agendamento' in data:
-            data['os_data_agendamento'] = datetime.fromisoformat(data['os_data_agendamento'])
-        if 'os_data_finalizacao' in data:
-            data['os_data_finalizacao'] = datetime.fromisoformat(data['os_data_finalizacao']) if data['os_data_finalizacao'] else None
-        if 'os_data_cadastro' in data:
-            data['os_data_cadastro'] = datetime.fromisoformat(data['os_data_cadastro']) if data['os_data_cadastro'] else None
+            data['os_data_agendamento'] = datetime.fromisoformat(data['os_data_agendamento'].replace('Z', '+00:00'))
+        if 'os_data_finalizacao' in data and data['os_data_finalizacao']:
+            data['os_data_finalizacao'] = datetime.fromisoformat(data['os_data_finalizacao'].replace('Z', '+00:00'))
         
         service_order = ServiceOrderService.update_service_order(order_id, **data)
         if service_order:

@@ -1,4 +1,4 @@
-// Admin Panel JavaScript - Versão com API
+// Admin Panel JavaScript - Versão corrigida
 document.addEventListener('DOMContentLoaded', function () {
     const API_BASE = '/admin/api';
 
@@ -28,6 +28,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Helper function to determine endpoint from context
+    function getEndpointFromContext(element) {
+        const table = element.closest('table');
+        const grid = element.closest('.grid');
+
+        if (table) {
+            const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
+            if (headers.includes('Cliente') && headers.includes('Contrato')) return 'customers';
+            if (headers.includes('Técnico') && headers.includes('Ordens Responsável')) return 'experts';
+            if (headers.includes('OS') && headers.includes('Cliente')) return 'serviceorders';
+        }
+
+        if (grid && grid.id === 'typeservicesGrid') return 'typeservices';
+
+        // Fallback baseado no conteúdo da página
+        if (document.querySelector('[data-endpoint]')) {
+            return document.querySelector('[data-endpoint]').getAttribute('data-endpoint');
+        }
+
+        return 'customers';
+    }
+
     // Delete functionality
     const deleteButtons = document.querySelectorAll('.delete-btn');
     let itemToDelete = null;
@@ -36,10 +58,9 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', function () {
             const id = this.getAttribute('data-id');
             const name = this.getAttribute('data-name');
-            const type = this.closest('table') ? 'table-row' : 'card';
             const endpoint = getEndpointFromContext(this);
 
-            itemToDelete = { id, name, type, endpoint };
+            itemToDelete = { id, name, endpoint };
 
             // Update modal message
             const message = deleteModal.querySelector('.modal-message');
@@ -48,20 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
             showModal(deleteModal);
         });
     });
-
-    // Helper function to determine endpoint from context
-    function getEndpointFromContext(element) {
-        if (element.closest('#customersTable') || element.closest('#customerModal')) {
-            return 'customers';
-        } else if (element.closest('#expertsTable') || element.closest('#expertModal')) {
-            return 'experts';
-        } else if (element.closest('#typeservicesGrid') || element.closest('#typeServiceModal')) {
-            return 'typeservices';
-        } else if (element.closest('#serviceordersTable') || element.closest('#serviceOrderModal')) {
-            return 'serviceorders';
-        }
-        return 'customers'; // fallback
-    }
 
     // Confirm delete
     document.getElementById('confirmDelete').addEventListener('click', async function () {
@@ -78,16 +85,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (result.success) {
                     // Remove element from DOM
-                    const element = document.querySelector(`[data-id="${itemToDelete.id}"]`).closest('tr, .bg-gradient');
+                    const element = document.querySelector(`[data-id="${itemToDelete.id}"]`);
                     if (element) {
-                        element.remove();
+                        const row = element.closest('tr') || element.closest('.bg-gradient');
+                        if (row) row.remove();
                     }
 
                     // Show success message
                     document.getElementById('successMessage').textContent = 'Item excluído com sucesso!';
                     showModal(successModal);
                 } else {
-                    alert('Erro ao excluir item: ' + result.error);
+                    alert('Erro ao excluir item: ' + (result.error || 'Erro desconhecido'));
                 }
 
             } catch (error) {
@@ -109,8 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Close success modal
     document.getElementById('closeSuccessModal').addEventListener('click', function () {
         hideModal(successModal);
-        // Recarregar a página após sucesso (opcional)
-        // window.location.reload();
+        window.location.reload();
     });
 
     // Add new item modals
@@ -129,10 +136,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const modal = document.getElementById(modalId);
                 const form = modal.querySelector('form');
                 form.reset();
-                form.querySelector('input[type="hidden"]').value = '';
+                const hiddenInput = form.querySelector('input[type="hidden"]');
+                if (hiddenInput) hiddenInput.value = '';
 
                 const title = modal.querySelector('.modal-title');
-                title.textContent = modalId.replace('Modal', '').replace(/([A-Z])/g, ' $1').trim();
+                let modalTitle = modalId.replace('Modal', '');
+                modalTitle = modalTitle.replace(/([A-Z])/g, ' $1').trim();
+                title.textContent = modalTitle;
+
                 showModal(modal);
             });
         }
@@ -176,6 +187,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = Object.fromEntries(formData);
                 const id = data.id;
 
+                // Processar dados específicos
+                if (endpoint === 'serviceorders') {
+                    // Processar múltiplos selecionados
+                    const assistantsSelect = document.getElementById('assistants');
+                    if (assistantsSelect) {
+                        data.assistants = Array.from(assistantsSelect.selectedOptions).map(option => parseInt(option.value));
+                    }
+
+                    // Converter datas para formato ISO
+                    if (data.os_data_agendamento) {
+                        data.os_data_agendamento = new Date(data.os_data_agendamento).toISOString();
+                    }
+                }
+
                 try {
                     const url = id ? `${API_BASE}/${endpoint}/${id}` : `${API_BASE}/${endpoint}`;
                     const method = id ? 'PUT' : 'POST';
@@ -205,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             window.location.reload();
                         }, 1500);
                     } else {
-                        alert('Erro: ' + result.error);
+                        alert('Erro: ' + (result.error || 'Erro desconhecido'));
                     }
                 } catch (error) {
                     console.error('Error submitting form:', error);
@@ -227,15 +252,36 @@ document.addEventListener('DOMContentLoaded', function () {
                 const item = await response.json();
 
                 if (item) {
-                    const modalId = endpoint + 'Modal';
+                    const modalId = endpoint.slice(0, -1) + 'Modal'; // Remove 's' final
                     const modal = document.getElementById(modalId);
+
+                    if (!modal) {
+                        console.error('Modal não encontrado:', modalId);
+                        return;
+                    }
+
                     const form = modal.querySelector('form');
+                    if (!form) {
+                        console.error('Form não encontrado no modal:', modalId);
+                        return;
+                    }
 
                     // Preencher o formulário com os dados
                     Object.keys(item).forEach(key => {
-                        const input = form.querySelector(`[name="${key}"]`);
+                        let input = form.querySelector(`[name="${key}"]`) || form.querySelector(`#${key}`);
                         if (input) {
-                            input.value = item[key];
+                            if (input.type === 'datetime-local' && item[key]) {
+                                // Converter ISO para datetime-local
+                                const date = new Date(item[key]);
+                                input.value = date.toISOString().slice(0, 16);
+                            } else if (input.type === 'select-multiple' && Array.isArray(item[key])) {
+                                // Selecionar múltiplas opções
+                                Array.from(input.options).forEach(option => {
+                                    option.selected = item[key].includes(parseInt(option.value));
+                                });
+                            } else {
+                                input.value = item[key];
+                            }
                         }
                     });
 
@@ -256,6 +302,10 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', async function () {
             const id = this.getAttribute('data-id');
 
+            if (!confirm('Deseja marcar esta ordem de serviço como concluída?')) {
+                return;
+            }
+
             try {
                 const response = await fetch(`${API_BASE}/serviceorders/${id}/complete`, {
                     method: 'POST',
@@ -270,13 +320,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('successMessage').textContent = 'Ordem de serviço marcada como concluída!';
                     showModal(successModal);
 
-                    // Atualizar a UI
-                    const row = this.closest('tr');
-                    const statusCell = row.querySelector('td:nth-child(6)');
-                    statusCell.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-green-900/30 text-green-400">Concluído</span>';
-                    this.remove();
+                    // Atualizar a UI após recarregar
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
                 } else {
-                    alert('Erro: ' + result.error);
+                    alert('Erro: ' + (result.error || 'Erro desconhecido'));
                 }
             } catch (error) {
                 console.error('Error completing order:', error);

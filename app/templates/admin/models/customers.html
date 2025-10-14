@@ -119,18 +119,20 @@
         </div>
         <h3 class="modal-title" id="modalTitle">Adicionar Cliente</h3>
         <form id="customerForm" class="space-y-4 mt-4">
-            <input type="hidden" id="customerId">
+            <input type="hidden" id="customerId" name="id">
             <div>
                 <label for="cliente_nome" class="input-label">Nome</label>
-                <input type="text" id="cliente_nome" class="input-field" placeholder="Nome completo" required>
+                <input type="text" id="cliente_nome" name="cliente_nome" class="input-field" placeholder="Nome completo"
+                    required>
             </div>
             <div>
                 <label for="id_contrato" class="input-label">ID do Contrato</label>
-                <input type="text" id="id_contrato" class="input-field" placeholder="Número do contrato" required>
+                <input type="text" id="id_contrato" name="id_contrato" class="input-field"
+                    placeholder="Número do contrato" required>
             </div>
             <div>
                 <label for="plano" class="input-label">Plano</label>
-                <select id="plano" class="input-field" required>
+                <select id="plano" name="plano" class="input-field" required>
                     <option value="">Selecione um plano</option>
                     <option value="Básico">Básico</option>
                     <option value="Intermediário">Intermediário</option>
