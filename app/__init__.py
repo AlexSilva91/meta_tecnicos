@@ -11,6 +11,8 @@ load_dotenv()
 login_manager = LoginManager()
 login_manager.login_view = 'login.login' 
 login_manager.login_message_category = 'info'
+login_manager.login_message = "Você precisa fazer login para acessar essa página."
+login_manager.login_message_category = "warning"
 
 
 def create_app(config_object=None):

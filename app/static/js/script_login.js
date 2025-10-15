@@ -201,6 +201,49 @@ document.addEventListener('DOMContentLoaded', function () {
             particlesContainer.appendChild(particle);
         }
 
+        const flashContainer = document.getElementById('flash-messages');
+        if (flashContainer) {
+            const messages = flashContainer.querySelectorAll('.flash-message');
+            messages.forEach(msg => {
+                const category = msg.dataset.category || 'info';
+                const text = msg.textContent || '';
+                showMessage(text, category);
+            });
+        }
+
+        function showMessage(message, type = 'info') {
+            const toast = document.createElement('div');
+
+            // Definir cor de fundo de acordo com o tipo
+            let bgColor = '';
+            switch (type) {
+                case 'success':
+                    bgColor = 'bg-green-600'; // verde
+                    break;
+                case 'error':
+                    bgColor = 'bg-red-600';   // vermelho
+                    break;
+                case 'warning':
+                    bgColor = 'bg-yellow-500'; // amarelo/dourado
+                    break;
+                default:
+                    bgColor = 'bg-gray-800';  // info ou padrão
+            }
+
+            toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 ${bgColor} text-white`;
+            toast.textContent = message;
+
+            document.body.appendChild(toast);
+
+            // Animação de entrada opcional
+            toast.classList.add('fade-in');
+
+            // Remover após 3 segundos
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
         // Adicionar keyframes para animação
         const style = document.createElement('style');
         style.textContent = `

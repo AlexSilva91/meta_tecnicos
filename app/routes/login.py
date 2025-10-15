@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, flash, render_template, request, jsonify, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user
 from app.service.auth_service import AuthService
 
@@ -60,4 +60,5 @@ def login():
 def logout():
     """Finaliza a sessão do usuário."""
     logout_user()  # limpa o login do Flask-Login
+    flash('Logout realizado com sucesso!', 'success')  # tipo 'success'
     return redirect(url_for('login.login'))
