@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Métricas Técnicos{% endblock %}
+
+{% block page_title %}Dashboard de Métricas{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total de ServiceOrders -->
+    <div
+        class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover-lift">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-cyan-400 text-sm font-medium">Total de Ordens de Serviço</p>
+                <h3 class="text-2xl font-bold text-white mt-2">{{ total_service_orders }}</h3>
+            </div>
+            <div class="p-3 bg-cyan-900/30 rounded-lg">
+                <i class="fas fa-clipboard-list text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total de Técnicos -->
+    <div
+        class="bg-gradient-to-br from-blue-900/50 to-cyan-900/30 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover-lift">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-cyan-400 text-sm font-medium">Total de Técnicos</p>
+                <h3 class="text-2xl font-bold text-white mt-2">{{ total_experts }}</h3>
+            </div>
+            <div class="p-3 bg-cyan-900/30 rounded-lg">
+                <i class="fas fa-user-tie text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Gráfico: ServiceOrders por Técnico -->
+    <div class="bg-gray-800/50 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover-lift">
+        <h3 class="text-lg font-semibold text-white mb-4">Serviços por Técnico</h3>
+        <canvas id="servicesByExpertChart"></canvas>
+    </div>
+
+    <!-- Gráfico: Serviços com Auxílio -->
+    <div class="bg-gray-800/50 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover-lift">
+        <h3 class="text-lg font-semibold text-white mb-4">Serviços com Auxílio</h3>
+        <canvas id="servicesWithAssistChart"></canvas>
+    </div>
+</div>
+
+<div class="bg-gray-800/50 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover-lift">
+    <h3 class="text-lg font-semibold text-white mb-4">Serviços por Categoria e Técnico</h3>
+    <canvas id="servicesByCategoryChart"></canvas>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard_metrics.js') }}"></script>
+{% endblock %}

@@ -3,6 +3,7 @@ from flask import render_template, Blueprint, request, jsonify, redirect, sessio
 from flask_login import current_user, login_required
 
 from app.service.customer_service import CustomerService
+from app.service.dashboard_service import DashboardService
 from app.service.expert_service import ExpertService
 from app.service.service_order_service import ServiceOrderService
 from app.service.type_service_service import TypeServiceService
@@ -402,3 +403,22 @@ def delete_user(user_id):
             return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
+    
+#----------------- MÉTRICAS PARA GRÁFICOS -----------------
+@admin_bp.route('/dashboard-metrics')
+@login_required
+def dashboard_metrics():
+    total_service_orders = DashboardService.get_total_service_orders()
+    total_experts = DashboardService.get_total_experts()
+    services_by_expert = DashboardService.get_services_by_expert()
+    services_with_assist = DashboardService.get_services_with_assist()
+    services_by_category = DashboardService.get_services_by_category()
+
+    return render_template(
+        'admin/models/dashboard_metrics.html',
+        total_service_orders=total_service_orders,
+        total_experts=total_experts,
+        servicesByExpert=services_by_expert,
+        servicesWithAssist=services_with_assist,
+        servicesByCategory=services_by_category
+    )
