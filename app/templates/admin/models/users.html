@@ -1,0 +1,118 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Usuários - Meta Técnicos Admin{% endblock %}
+
+{% block page_title %}Gerenciar Usuários{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Usuários</h1>
+        <p class="text-gray-400">Gerencie os usuários do sistema</p>
+    </div>
+    <button id="addUserBtn"
+        class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all duration-200 shadow-lg">
+        <i class="fas fa-plus"></i>
+        <span>Novo Usuário</span>
+    </button>
+</div>
+
+<!-- Users Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for user in users %}
+    <div
+        class="bg-gradient-to-br from-blue-900/30 to-cyan-900/20 rounded-xl p-6 border border-cyan-900/30 shadow-lg hover:border-cyan-500/50 transition-all duration-200 group">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">
+                    {{ user.first_name }} {{ user.last_name }}
+                </h3>
+                <p class="text-gray-400 text-sm mt-1">{{ user.login_hash }}</p>
+            </div>
+            <div class="flex space-x-2">
+                <button class="edit-btn text-cyan-400 hover:text-cyan-300 transition-colors" data-id="{{ user.id }}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-btn text-red-400 hover:text-red-300 transition-colors" data-id="{{ user.id }}"
+                    data-name="{{ user.first_name }} {{ user.last_name }}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="flex justify-between items-center text-sm">
+            <span class="text-cyan-400 font-medium">ID: {{ user.id }}</span>
+            <span class="text-gray-500 text-xs">Criado em: {{ user.created_at.strftime('%d/%m/%Y') if user.created_at
+                else 'N/A' }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add/Edit User Modal -->
+<div id="userModal" class="modal hidden">
+    <div class="modal-content max-w-md">
+        <div class="modal-icon">
+            <i class="fas fa-user"></i>
+        </div>
+        <h3 class="modal-title" id="userModalTitle">Adicionar Usuário</h3>
+        <form id="userForm" class="space-y-4 mt-4">
+            <input type="hidden" id="userId">
+            <div>
+                <label for="firstName" class="input-label">Nome</label>
+                <input type="text" id="firstName" class="input-field" placeholder="Nome do usuário" required>
+            </div>
+            <div>
+                <label for="lastName" class="input-label">Sobrenome</label>
+                <input type="text" id="lastName" class="input-field" placeholder="Sobrenome do usuário" required>
+            </div>
+            <div>
+                <label for="password" class="input-label">Senha</label>
+                <input type="password" id="password" class="input-field" placeholder="Senha do usuário" required>
+                <p class="text-gray-400 text-xs mt-1">A senha deve ter pelo menos 6 caracteres</p>
+            </div>
+            <div id="loginPreview" class="hidden">
+                <label class="input-label">Login Gerado</label>
+                <div class="input-field bg-gray-800 text-cyan-400">
+                    <span id="generatedLogin"></span>
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button type="button" id="cancelUser"
+                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white py-2 rounded-lg transition-all duration-200">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal hidden">
+    <div class="modal-content max-w-md">
+        <div class="modal-icon">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+        </div>
+        <h3 class="modal-title">Confirmar Exclusão</h3>
+        <p class="modal-message" id="deleteMessage">
+            Tem certeza que deseja excluir o usuário <span id="userNameToDelete"
+                class="font-semibold text-white"></span>?
+            Esta ação não pode ser desfeita.
+        </p>
+        <div class="flex space-x-3 mt-6">
+            <button type="button" id="cancelDelete"
+                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors">
+                Cancelar
+            </button>
+            <button type="button" id="confirmDelete"
+                class="flex-1 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white py-2 rounded-lg transition-all duration-200">
+                Excluir
+            </button>
+        </div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+{% endblock %}

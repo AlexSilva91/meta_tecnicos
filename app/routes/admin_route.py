@@ -1,12 +1,24 @@
 from datetime import datetime
-from flask import render_template, Blueprint, request, jsonify, redirect, url_for
+from flask import render_template, Blueprint, request, jsonify, redirect, session, url_for
 
 from app.service.customer_service import CustomerService
 from app.service.expert_service import ExpertService
 from app.service.service_order_service import ServiceOrderService
 from app.service.type_service_service import TypeServiceService
+from app.service.user_service import UserService
 
 admin_bp = Blueprint('admin', __name__)
+
+@admin_bp.before_request
+def require_login():
+    """Verifica se o usuário está logado antes de acessar rotas do admin."""
+    # Lista de endpoints que não requerem login (se houver)
+    public_endpoints = []
+    
+    if request.endpoint and request.endpoint.startswith('admin.'):
+        if request.endpoint not in public_endpoints and 'user_id' not in session:
+            return redirect(url_for('login.login'))
+
 
 @admin_bp.route('/')
 def admin_dashboard():
@@ -307,3 +319,77 @@ def api_complete_serviceorder(order_id):
     if service_order:
         return jsonify({'success': True})
     return jsonify({'success': False, 'error': 'Ordem de serviço não encontrada'}), 404
+
+# -------------- USER ROUTES --------------
+
+@admin_bp.route('/admin/users')
+def admin_users():
+    users = UserService.list_users()
+    return render_template('admin/models/users.html', users=users)
+
+# Rota para obter dados de um usuário (para edição)
+@admin_bp.route('/users/<int:user_id>')
+def get_user(user_id):
+    user = UserService.get_user_by_id(user_id)
+    if user:
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'login_hash': user.login_hash
+            }
+        })
+    return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+
+# Rota para criar usuário
+@admin_bp.route('/users/create', methods=['POST'])
+def create_user():
+    try:
+        data = request.get_json()
+        
+        user = UserService.create_user(
+            first_name=data['first_name'],
+            last_name=data['last_name'],
+            password=data['password']
+        )
+        return jsonify({'success': True, 'message': 'Usuário criado com sucesso'})
+    except Exception as e:
+        print(e)
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# Rota para atualizar usuário
+@admin_bp.route('/users/<int:user_id>/update', methods=['POST'])
+def update_user(user_id):
+    try:
+        data = request.get_json()
+        update_data = {}
+        
+        if 'first_name' in data:
+            update_data['first_name'] = data['first_name']
+        if 'last_name' in data:
+            update_data['last_name'] = data['last_name']
+        if 'password' in data and data['password']:
+            update_data['password'] = data['password']
+            
+        user = UserService.update_user(user_id, **update_data)
+        
+        if user:
+            return jsonify({'success': True, 'message': 'Usuário atualizado com sucesso'})
+        else:
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+# Rota para deletar usuário
+@admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+def delete_user(user_id):
+    try:
+        success = UserService.delete_user(user_id)
+        if success:
+            return jsonify({'success': True, 'message': 'Usuário excluído com sucesso'})
+        else:
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400

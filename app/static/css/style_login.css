@@ -403,3 +403,19 @@ body {
         font-size: 0.875rem;
     }
 }
+
+.input-field::placeholder {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.input-field.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}

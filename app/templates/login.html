@@ -25,10 +25,10 @@
             <!-- Formulário de Login -->
             <form id="loginForm" class="space-y-6">
                 <div class="input-group">
-                    <label for="email" class="input-label">Login</label>
+                    <label for="login_hash" class="input-label">Login</label>
                     <div class="input-container">
-                        <i class="fas fa-user-circle input-icon"></i>
-                        <input type="email" id="email" class="input-field" placeholder="seu@email.com" required>
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="login_hash" class="input-field" placeholder="seu.login" required>
                     </div>
                 </div>
 
@@ -41,9 +41,6 @@
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
-                </div>
-
-                <div class="flex items-center justify-between">
                 </div>
 
                 <button type="submit" class="submit-button">
@@ -62,7 +59,6 @@
             </div>
             <h3 class="modal-title">Login realizado!</h3>
             <p class="modal-message">Redirecionando para o painel...</p>
-            <button class="modal-button" id="closeModal">OK</button>
         </div>
     </div>
 

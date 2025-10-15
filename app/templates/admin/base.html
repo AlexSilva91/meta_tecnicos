@@ -54,6 +54,13 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ url_for('admin.admin_users') }}"
+                            class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_experts' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
+                            <i class="fas fa-user-tie w-5"></i>
+                            <span>Usuários</span>
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ url_for('admin.admin_typeservices') }}"
                             class="flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-cyan-900/20 hover:text-cyan-400 {% if request.endpoint == 'admin_typeservices' %}bg-cyan-900/30 text-cyan-400 border-r-2 border-cyan-400{% endif %}">
                             <i class="fas fa-cogs w-5"></i>
@@ -78,15 +85,12 @@
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-white">{% block page_title %}Dashboard{% endblock %}</h2>
                     <div class="flex items-center space-x-4">
-                        <button class="p-2 rounded-lg hover:bg-cyan-900/20 transition-colors">
-                            <i class="fas fa-bell text-cyan-400"></i>
-                        </button>
                         <div class="flex items-center space-x-2">
+                            <span class="text-sm">{{ current_user.first_name.upper() }}</span>
                             <div
                                 class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
                                 <i class="fas fa-user text-white text-sm"></i>
                             </div>
-                            <span class="text-sm">Admin</span>
                         </div>
                     </div>
                 </div>

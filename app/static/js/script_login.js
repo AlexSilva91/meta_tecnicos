@@ -1,14 +1,10 @@
-// script.js
 document.addEventListener('DOMContentLoaded', function () {
     // Elementos do DOM
     const loginForm = document.getElementById('loginForm');
-    const emailInput = document.getElementById('email');
+    const loginInput = document.getElementById('login_hash');
     const passwordInput = document.getElementById('password');
     const togglePasswordBtn = document.getElementById('togglePassword');
-    const rememberCheckbox = document.getElementById('remember');
     const successModal = document.getElementById('successModal');
-    const closeModalBtn = document.getElementById('closeModal');
-    const socialButtons = document.querySelectorAll('.social-button');
 
     // Alternar visibilidade da senha
     togglePasswordBtn.addEventListener('click', function () {
@@ -35,43 +31,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let isValid = true;
 
-        // Validação de email
-        if (!validateEmail(emailInput.value)) {
-            showError(emailInput, 'Por favor, insira um e-mail válido');
+        // Validação do login
+        if (!loginInput.value.trim()) {
+            showError(loginInput, 'Por favor, insira seu login');
             isValid = false;
         }
 
         // Validação de senha
-        if (passwordInput.value.length < 6) {
-            showError(passwordInput, 'A senha deve ter pelo menos 6 caracteres');
+        if (!passwordInput.value) {
+            showError(passwordInput, 'Por favor, insira sua senha');
             isValid = false;
         }
 
         if (isValid) {
-            simulateLogin();
+            performLogin();
         }
     });
 
     // Limpar erros ao digitar
-    emailInput.addEventListener('input', function () {
+    loginInput.addEventListener('input', function () {
         clearError(this);
     });
 
     passwordInput.addEventListener('input', function () {
         clearError(this);
-    });
-
-    // Botões de login social
-    socialButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const provider = this.classList.contains('google') ? 'Google' : 'GitHub';
-            showMessage(`Login com ${provider} selecionado`);
-        });
-    });
-
-    // Fechar modal
-    closeModalBtn.addEventListener('click', function () {
-        successModal.style.display = 'none';
     });
 
     // Fechar modal ao clicar fora
@@ -82,11 +65,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Funções auxiliares
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-
     function showError(input, message) {
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message';
@@ -113,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
         errorInputs.forEach(input => input.classList.remove('error'));
     }
 
-    function simulateLogin() {
+    function performLogin() {
         // Adicionar efeito de carregamento
         const submitButton = loginForm.querySelector('.submit-button');
         const originalText = submitButton.querySelector('.button-text').textContent;
@@ -123,35 +101,67 @@ document.addEventListener('DOMContentLoaded', function () {
         submitButton.querySelector('.button-icon').className = 'fas fa-spinner fa-spin button-icon';
         submitButton.disabled = true;
 
-        // Simular atraso de rede
-        setTimeout(() => {
-            // Restaurar botão
-            submitButton.querySelector('.button-text').textContent = originalText;
-            submitButton.querySelector('.button-icon').className = originalIcon;
-            submitButton.disabled = false;
+        // Dados do formulário
+        const formData = {
+            login_hash: loginInput.value.trim(),
+            password: passwordInput.value
+        };
 
-            // Mostrar modal de sucesso
-            successModal.style.display = 'flex';
+        // Fazer requisição AJAX para o servidor
+        fetch('/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro na requisição');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Mostrar modal de sucesso
+                    successModal.style.display = 'flex';
 
-            // Simular redirecionamento após 2 segundos
-            setTimeout(() => {
-                // Em uma aplicação real, você faria: window.location.href = '/dashboard';
-                showMessage('Redirecionando para o painel...');
-            }, 2000);
-        }, 1500);
+                    // Redirecionar após 2 segundos
+                    setTimeout(() => {
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            window.location.href = '/admin/';
+                        }
+                    }, 2000);
+                } else {
+                    showNotification(data.message || 'Erro ao fazer login', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showNotification('Erro de conexão. Tente novamente.', 'error');
+            })
+            .finally(() => {
+                // Restaurar botão
+                submitButton.querySelector('.button-text').textContent = originalText;
+                submitButton.querySelector('.button-icon').className = originalIcon;
+                submitButton.disabled = false;
+            });
     }
 
-    function showMessage(message) {
+    function showNotification(message, type = 'error') {
         // Criar um toast notification
         const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            } text-white`;
         toast.textContent = message;
         document.body.appendChild(toast);
 
-        // Remover após 3 segundos
+        // Remover após 5 segundos
         setTimeout(() => {
             toast.remove();
-        }, 3000);
+        }, 5000);
     }
 
     // Efeito de partículas no background (opcional)

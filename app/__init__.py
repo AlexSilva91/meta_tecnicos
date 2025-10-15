@@ -1,11 +1,17 @@
 from flask import Flask
 from .database import db
 from flask_migrate import Migrate
+from flask_login import LoginManager
 from dotenv import load_dotenv
 import os
 
 # Carrega variáveis do .env
 load_dotenv()
+
+login_manager = LoginManager()
+login_manager.login_view = 'login.login' 
+login_manager.login_message_category = 'info'
+
 
 def create_app(config_object=None):
     app = Flask(__name__,
@@ -30,19 +36,26 @@ def create_app(config_object=None):
     }
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave-padrao-segura')
     app.config['DEBUG'] = os.getenv('DEBUG', 'False') == 'True'
 
-    # Inicializa o SQLAlchemy
+    # Inicializa extensões
     db.init_app(app)
-
-    # Inicializa o Flask-Migrate
     Migrate(app, db)
+    login_manager.init_app(app)
 
-    # Importa e registra blueprints
+    # Importa serviços e blueprints
+    from .service.user_service import UserService
     from .routes.login import login_bp
     from .routes.admin_route import admin_bp
+
     app.register_blueprint(login_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
+
+    # --- Função que carrega o usuário logado ---
+    @login_manager.user_loader
+    def load_user(user_id):
+        """Carrega o usuário pelo ID armazenado na sessão."""
+        return UserService.get_user_by_id(user_id)
 
     return app
