@@ -408,17 +408,19 @@ def delete_user(user_id):
 @admin_bp.route('/dashboard-metrics')
 @login_required
 def dashboard_metrics():
-    total_service_orders = DashboardService.get_total_service_orders()
-    total_experts = DashboardService.get_total_experts()
+    return render_template(
+        'admin/models/dashboard_metrics.html'
+    )
+    
+@admin_bp.route('/dashboard-metrics-data')
+@login_required
+def dashboard_metrics_data():
     services_by_expert = DashboardService.get_services_by_expert()
     services_with_assist = DashboardService.get_services_with_assist()
     services_by_category = DashboardService.get_services_by_category()
 
-    return render_template(
-        'admin/models/dashboard_metrics.html',
-        total_service_orders=total_service_orders,
-        total_experts=total_experts,
-        servicesByExpert=services_by_expert,
-        servicesWithAssist=services_with_assist,
-        servicesByCategory=services_by_category
-    )
+    return jsonify({
+        'servicesByExpert': services_by_expert,
+        'servicesWithAssist': services_with_assist,
+        'servicesByCategory': services_by_category
+    })
