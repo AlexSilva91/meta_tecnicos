@@ -2,7 +2,53 @@
 document.addEventListener('DOMContentLoaded', function () {
     const API_BASE = '/admin/api';
 
-    // Modal Management
+    // ==================== MOBILE MENU ====================
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const closeSidebarBtn = document.querySelector('.close-sidebar-btn');
+    const sidebar = document.querySelector('.mobile-sidebar');
+    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+
+    function openMobileMenu() {
+        if (sidebar && mobileMenuOverlay) {
+            sidebar.classList.add('active');
+            mobileMenuOverlay.classList.remove('hidden');
+            document.body.classList.add('sidebar-open');
+        }
+    }
+
+    function closeMobileMenu() {
+        if (sidebar && mobileMenuOverlay) {
+            sidebar.classList.remove('active');
+            mobileMenuOverlay.classList.add('hidden');
+            document.body.classList.remove('sidebar-open');
+        }
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+    }
+
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', closeMobileMenu);
+    }
+
+    if (mobileMenuOverlay) {
+        mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+    }
+
+    // Close menu when clicking on links (mobile)
+    if (sidebar) {
+        const sidebarLinks = sidebar.querySelectorAll('a');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function () {
+                if (window.innerWidth < 1024) {
+                    closeMobileMenu();
+                }
+            });
+        });
+    }
+
+    // ==================== MODAL MANAGEMENT ====================
     const modals = document.querySelectorAll('.modal');
     const deleteModal = document.getElementById('deleteModal');
     const successModal = document.getElementById('successModal');
@@ -42,7 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (grid && grid.id === 'typeservicesGrid') return 'typeservices';
 
-        // Fallback baseado no conteúdo da página
         if (document.querySelector('[data-endpoint]')) {
             return document.querySelector('[data-endpoint]').getAttribute('data-endpoint');
         }
@@ -62,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             itemToDelete = { id, name, endpoint };
 
-            // Update modal message
             const message = deleteModal.querySelector('.modal-message');
             message.textContent = `Tem certeza que deseja excluir "${name}"? Esta ação não pode ser desfeita.`;
 
@@ -84,14 +128,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const result = await response.json();
 
                 if (result.success) {
-                    // Remove element from DOM
                     const element = document.querySelector(`[data-id="${itemToDelete.id}"]`);
                     if (element) {
                         const row = element.closest('tr') || element.closest('.bg-gradient');
                         if (row) row.remove();
                     }
 
-                    // Show success message
                     document.getElementById('successMessage').textContent = 'Item excluído com sucesso!';
                     showModal(successModal);
                 } else {
@@ -187,15 +229,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const data = Object.fromEntries(formData);
                 const id = data.id;
 
-                // Processar dados específicos
                 if (endpoint === 'serviceorders') {
-                    // Processar múltiplos selecionados
                     const assistantsSelect = document.getElementById('assistants');
                     if (assistantsSelect) {
                         data.assistants = Array.from(assistantsSelect.selectedOptions).map(option => parseInt(option.value));
                     }
 
-                    // Converter datas para formato ISO
                     if (data.os_data_agendamento) {
                         data.os_data_agendamento = new Date(data.os_data_agendamento).toISOString();
                     }
@@ -225,7 +264,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         hideModal(modal);
                         form.reset();
 
-                        // Recarregar a página após um breve delay
                         setTimeout(() => {
                             window.location.reload();
                         }, 1500);
@@ -252,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const item = await response.json();
 
                 if (item) {
-                    const modalId = endpoint.slice(0, -1) + 'Modal'; // Remove 's' final
+                    const modalId = endpoint.slice(0, -1) + 'Modal';
                     const modal = document.getElementById(modalId);
 
                     if (!modal) {
@@ -266,16 +304,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
 
-                    // Preencher o formulário com os dados
                     Object.keys(item).forEach(key => {
                         let input = form.querySelector(`[name="${key}"]`) || form.querySelector(`#${key}`);
                         if (input) {
                             if (input.type === 'datetime-local' && item[key]) {
-                                // Converter ISO para datetime-local
                                 const date = new Date(item[key]);
                                 input.value = date.toISOString().slice(0, 16);
                             } else if (input.type === 'select-multiple' && Array.isArray(item[key])) {
-                                // Selecionar múltiplas opções
                                 Array.from(input.options).forEach(option => {
                                     option.selected = item[key].includes(parseInt(option.value));
                                 });
@@ -320,7 +355,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('successMessage').textContent = 'Ordem de serviço marcada como concluída!';
                     showModal(successModal);
 
-                    // Atualizar a UI após recarregar
                     setTimeout(() => {
                         window.location.reload();
                     }, 1500);
@@ -372,6 +406,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    // Flash messages
     const flashContainer = document.getElementById('flash-messages');
     if (flashContainer) {
         const messages = flashContainer.querySelectorAll('.flash-message');
@@ -385,34 +421,52 @@ document.addEventListener('DOMContentLoaded', function () {
     function showMessage(message, type = 'info') {
         const toast = document.createElement('div');
 
-        // Definir cor de fundo de acordo com o tipo
         let bgColor = '';
         switch (type) {
             case 'success':
-                bgColor = 'bg-green-600'; // verde
+                bgColor = 'bg-green-600';
                 break;
             case 'error':
-                bgColor = 'bg-red-600';   // vermelho
+                bgColor = 'bg-red-600';
                 break;
             case 'warning':
-                bgColor = 'bg-yellow-500'; // amarelo/dourado
+                bgColor = 'bg-yellow-500';
                 break;
             default:
-                bgColor = 'bg-gray-800';  // info ou padrão
+                bgColor = 'bg-gray-800';
         }
 
         toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 ${bgColor} text-white`;
         toast.textContent = message;
 
         document.body.appendChild(toast);
-
-        // Animação de entrada opcional
         toast.classList.add('fade-in');
 
-        // Remover após 3 segundos
         setTimeout(() => {
             toast.remove();
         }, 3000);
     }
+
+    // Responsive table wrapper
+    const tables = document.querySelectorAll('table');
+    tables.forEach(table => {
+        if (!table.parentElement.classList.contains('table-container')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-container';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    });
+
+    // Window resize handler
+    let resizeTimer;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+            if (window.innerWidth >= 1024) {
+                closeMobileMenu();
+            }
+        }, 250);
+    });
 
 });

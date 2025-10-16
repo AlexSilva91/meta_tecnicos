@@ -12,20 +12,29 @@
 </head>
 
 <body class="bg-gray-900 text-gray-100">
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay hidden lg:hidden"></div>
+
     <!-- Sidebar -->
     <div class="flex h-screen">
-        <div class="w-64 bg-gray-800 border-r border-cyan-900/30">
+        <div class="mobile-sidebar w-64 bg-gray-800 border-r border-cyan-900/30">
             <!-- Logo -->
             <div class="p-4 border-b border-cyan-900/30">
-                <div class="flex items-center space-x-3">
-                    <div
-                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-                        <i class="fas fa-tools text-white"></i>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                            <i class="fas fa-tools text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-white">Meta Técnicos</h1>
+                            <p class="text-xs text-cyan-400">Admin Panel</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 class="text-lg font-bold text-white">Meta Técnicos</h1>
-                        <p class="text-xs text-cyan-400">Admin Panel</p>
-                    </div>
+                    <!-- Close button (mobile only) -->
+                    <button class="close-sidebar-btn lg:hidden text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
             </div>
 
@@ -90,20 +99,31 @@
             <!-- Header -->
             <header class="bg-gray-800 border-b border-cyan-900/30 p-4">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-xl font-semibold text-white">{% block page_title %}Dashboard{% endblock %}</h2>
                     <div class="flex items-center space-x-4">
-                        <div class="flex items-center space-x-2">
+                        <!-- Mobile Menu Button -->
+                        <button class="mobile-menu-btn lg:hidden text-gray-300 hover:text-white">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h2 class="text-lg sm:text-xl font-semibold text-white truncate">{% block page_title %}Dashboard{% endblock %}</h2>
+                    </div>
+                    <div class="flex items-center space-x-2 sm:space-x-4">
+                        <div class="hidden sm:flex items-center space-x-2">
                             <span class="text-sm">{{ current_user.first_name.upper() }}</span>
                             <div
                                 class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
                                 <i class="fas fa-user text-white text-sm"></i>
                             </div>
                         </div>
+                        <!-- Mobile user icon -->
+                        <div class="sm:hidden w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
 
                         <!-- Botão de Logout -->
                         <a href="{{ url_for('login.logout') }}"
                             class="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm">
-                            Logout
+                            <span class="hidden sm:inline">Logout</span>
+                            <i class="fas fa-sign-out-alt sm:hidden"></i>
                         </a>
                     </div>
                 </div>
@@ -111,7 +131,7 @@
 
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto p-6">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6">
                 {% block content %}{% endblock %}
             </main>
         </div>
