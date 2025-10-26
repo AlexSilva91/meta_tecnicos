@@ -6,7 +6,8 @@ class Expert(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-
+    status = db.Column(db.Boolean, nullable=False, default=True)
+    
     # Relação com ServiceOrders onde é técnico responsável
     responsible_orders = db.relationship('ServiceOrder', foreign_keys='ServiceOrder.os_tecnico_responsavel', backref='tecnico_responsavel', lazy=True)
     
@@ -61,3 +62,9 @@ class Expert(db.Model):
     def list(cls, limit: int = 50, offset: int = 0):
         """Lista especialistas com paginação."""
         return cls.query.offset(offset).limit(limit).all()
+    
+    @classmethod
+    def list_active(cls, limit: int = 50, offset: int = 0):
+        """Lista apenas especialistas ativos com paginação."""
+        return cls.query.filter_by(status=True).offset(offset).limit(limit).all()
+

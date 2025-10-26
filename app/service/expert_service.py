@@ -23,4 +23,4 @@ class ExpertService:
 
     @staticmethod
     def list_experts(limit: int = 50, offset: int = 0):
-        return Expert.list(limit=limit, offset=offset)
+        return Expert.list_active(limit=limit, offset=offset)

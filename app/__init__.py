@@ -29,7 +29,7 @@ def create_app(config_object=None):
 
     # Monta a URI do PostgreSQL
     app.config['SQLALCHEMY_DATABASE_URI'] = (
-        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
 
     # Garante que o schema public será usado

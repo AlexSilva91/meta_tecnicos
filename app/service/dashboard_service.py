@@ -10,12 +10,12 @@ class DashboardService:
 
     @staticmethod
     def get_total_experts() -> int:
-        return len(Expert.list(limit=10000))
+        return len(Expert.list_active(limit=10000))
 
     @staticmethod
     def get_services_by_expert() -> dict:
         data = defaultdict(int)
-        for expert in Expert.list(limit=10000):
+        for expert in Expert.list_active(limit=10000):
             # Técnico responsável
             data[expert.nome] += len(expert.responsible_orders)
             # Técnico auxiliar
@@ -39,7 +39,7 @@ class DashboardService:
     @staticmethod
     def get_services_by_category() -> dict:
         categories = TypeService.list(limit=10000)
-        experts = Expert.list(limit=10000)
+        experts = Expert.list_active(limit=10000)
         datasets = []
         for expert in experts:
             data = []
