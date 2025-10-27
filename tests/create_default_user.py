@@ -1,7 +1,13 @@
+import sys
+import os
+# Adiciona o diretório raiz do projeto ao caminho do Python
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app import create_app
 from app.database import db
-from app.models.user import User  # ajuste o caminho conforme sua estrutura
+from app.models.user import User  # ajuste se o caminho for diferente
 from werkzeug.security import generate_password_hash
+
 
 # --- CONFIGURAÇÃO FLASK ---
 app = create_app()
