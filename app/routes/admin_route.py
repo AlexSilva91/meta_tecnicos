@@ -8,11 +8,29 @@ from app.service.expert_service import ExpertService
 from app.service.service_order_service import ServiceOrderService
 from app.service.type_service_service import TypeServiceService
 from app.service.user_service import UserService
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({
+                'success': False,
+                'message': 'Usuário não autenticado'
+            }), 401
+        if not getattr(current_user, 'superuser', False):
+            return jsonify({
+                'success': False,
+                'message': 'Acesso negado: usuário sem permissão de administrador'
+            }), 403
+        return f(*args, **kwargs)
+    return decorated_function
 
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/')
 @login_required
+@admin_required
 def admin_dashboard():
     """Dashboard principal do admin"""
     customers = CustomerService.list_customers()
@@ -32,6 +50,7 @@ def admin_dashboard():
 
 @admin_bp.route('/customers')
 @login_required
+@admin_required
 def admin_customers():
     """Página de gerenciamento de clientes"""
     customers = CustomerService.list_customers()
@@ -39,6 +58,7 @@ def admin_customers():
 
 @admin_bp.route('/experts')
 @login_required
+@admin_required
 def admin_experts():
     """Página de gerenciamento de técnicos"""
     experts = ExpertService.list_experts()
@@ -46,6 +66,7 @@ def admin_experts():
 
 @admin_bp.route('/typeservices')
 @login_required
+@admin_required
 def admin_typeservices():
     """Página de gerenciamento de tipos de serviço"""
     typeservices = TypeServiceService.list_type_services()
@@ -53,6 +74,7 @@ def admin_typeservices():
 
 @admin_bp.route('/serviceorders')
 @login_required
+@admin_required
 def admin_serviceorders():
     """Página de gerenciamento de ordens de serviço"""
     service_orders = ServiceOrderService.list_service_orders()
@@ -76,6 +98,7 @@ def admin_serviceorders():
 # API Routes para CRUD operations
 @admin_bp.route('/api/customers', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def api_customers():
     if request.method == 'POST':
         data = request.get_json()
@@ -105,6 +128,7 @@ def api_customers():
 
 @admin_bp.route('/api/customers/<int:customer_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
+@admin_required
 def api_customer(customer_id):
     if request.method == 'GET':
         customer = CustomerService.get_customer_by_id(customer_id)
@@ -135,6 +159,7 @@ def api_customer(customer_id):
 
 @admin_bp.route('/api/experts', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def api_experts():
     if request.method == 'POST':
         data = request.get_json()
@@ -155,6 +180,7 @@ def api_experts():
 
 @admin_bp.route('/api/experts/<int:expert_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
+@admin_required
 def api_expert(expert_id):
     if request.method == 'GET':
         expert = ExpertService.get_expert_by_id(expert_id)
@@ -181,6 +207,7 @@ def api_expert(expert_id):
 
 @admin_bp.route('/api/typeservices', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def api_typeservices():
     if request.method == 'POST':
         data = request.get_json()
@@ -201,6 +228,7 @@ def api_typeservices():
 
 @admin_bp.route('/api/typeservices/<int:type_service_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
+@admin_required
 def api_typeservice(type_service_id):
     if request.method == 'GET':
         type_service = TypeServiceService.get_type_service_by_id(type_service_id)
@@ -227,6 +255,7 @@ def api_typeservice(type_service_id):
 
 @admin_bp.route('/api/serviceorders', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def api_serviceorders():
     if request.method == 'POST':
         data = request.get_json()
@@ -274,6 +303,7 @@ def api_serviceorders():
 
 @admin_bp.route('/api/serviceorders/<int:order_id>', methods=['GET', 'PUT', 'DELETE'])
 @login_required
+@admin_required
 def api_serviceorder(order_id):
     if request.method == 'GET':
         service_order = ServiceOrderService.get_service_order_by_id(order_id)
@@ -318,6 +348,7 @@ def api_serviceorder(order_id):
 
 @admin_bp.route('/api/serviceorders/<int:order_id>/complete', methods=['POST'])
 @login_required
+@admin_required
 def api_complete_serviceorder(order_id):
     """Marca uma ordem de serviço como concluída"""
     service_order = ServiceOrderService.complete_service_order(order_id)
@@ -329,6 +360,7 @@ def api_complete_serviceorder(order_id):
 
 @admin_bp.route('/admin/users')
 @login_required
+@admin_required
 def admin_users():
     users = UserService.list_users()
     return render_template('admin/models/users.html', users=users)
@@ -353,6 +385,7 @@ def get_user(user_id):
 # Rota para criar usuário
 @admin_bp.route('/users/create', methods=['POST'])
 @login_required
+@admin_required
 def create_user():
     try:
         data = request.get_json()
@@ -370,6 +403,7 @@ def create_user():
 # Rota para atualizar usuário
 @admin_bp.route('/users/<int:user_id>/update', methods=['POST'])
 @login_required
+@admin_required
 def update_user(user_id):
     try:
         data = request.get_json()
@@ -394,6 +428,7 @@ def update_user(user_id):
 # Rota para deletar usuário
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required
+@admin_required
 def delete_user(user_id):
     try:
         success = UserService.delete_user(user_id)
@@ -407,6 +442,7 @@ def delete_user(user_id):
 #----------------- MÉTRICAS PARA GRÁFICOS -----------------
 @admin_bp.route('/dashboard-metrics')
 @login_required
+@admin_required
 def dashboard_metrics():
     return render_template(
         'admin/models/dashboard_metrics.html'
@@ -414,6 +450,7 @@ def dashboard_metrics():
     
 @admin_bp.route('/dashboard-metrics-data')
 @login_required
+@admin_required
 def dashboard_metrics_data():
     services_by_expert = DashboardService.get_services_by_expert()
     services_with_assist = DashboardService.get_services_with_assist()

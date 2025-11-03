@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function performLogin() {
-        // Adicionar efeito de carregamento
         const submitButton = loginForm.querySelector('.submit-button');
         const originalText = submitButton.querySelector('.button-text').textContent;
         const originalIcon = submitButton.querySelector('.button-icon').className;
@@ -101,54 +100,41 @@ document.addEventListener('DOMContentLoaded', function () {
         submitButton.querySelector('.button-icon').className = 'fas fa-spinner fa-spin button-icon';
         submitButton.disabled = true;
 
-        // Dados do formulário
         const formData = {
             login_hash: loginInput.value.trim(),
             password: passwordInput.value
         };
 
-        // Fazer requisição AJAX para o servidor
         fetch('/', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro na requisição');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Mostrar modal de sucesso
-                    successModal.style.display = 'flex';
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
 
-                    // Redirecionar após 2 segundos
+                if (response.ok && data.success) {
+                    successModal.style.display = 'flex';
                     setTimeout(() => {
-                        if (data.redirect_url) {
-                            window.location.href = data.redirect_url;
-                        } else {
-                            window.location.href = '/admin/';
-                        }
+                        window.location.href = data.redirect_url || '/admin/';
                     }, 2000);
                 } else {
-                    showNotification(data.message || 'Erro ao fazer login', 'error');
+                    showNotification(
+                        data.message || 'Erro ao fazer login',
+                        'error'
+                    );
                 }
             })
-            .catch(error => {
-                console.error('Erro:', error);
+            .catch(() => {
                 showNotification('Erro de conexão. Tente novamente.', 'error');
             })
             .finally(() => {
-                // Restaurar botão
                 submitButton.querySelector('.button-text').textContent = originalText;
                 submitButton.querySelector('.button-icon').className = originalIcon;
                 submitButton.disabled = false;
             });
     }
+
 
     function showNotification(message, type = 'error') {
         // Criar um toast notification

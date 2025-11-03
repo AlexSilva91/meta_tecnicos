@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    fetch('/admin/dashboard-metrics-data')
+    const route = window.USER_ROLE === 'admin'
+        ? '/admin/dashboard-metrics-data'
+        : '/user/dashboard-metrics-data';
+
+    fetch(route)
         .then(response => {
             if (!response.ok) throw new Error('Erro ao buscar dados do dashboard');
             return response.json();
