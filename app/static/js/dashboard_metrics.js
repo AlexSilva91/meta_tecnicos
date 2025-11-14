@@ -1,7 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const route = window.USER_ROLE === 'admin'
-        ? '/admin/dashboard-metrics-data'
-        : '/user/dashboard-metrics-data';
+    const route = '/admin/dashboard-metrics-data';
 
     fetch(route)
         .then(response => {
