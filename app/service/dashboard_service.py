@@ -15,57 +15,30 @@ class DashboardService:
         return len(Expert.list_active(limit=10000))
 
     @staticmethod
-    def get_services_by_expert(month: int = None, year: int = None) -> dict:
-        """Retorna total de serviços por técnico no mês/ano especificado com detalhes por categoria"""
-        if month is None:
-            month = datetime.now().month
-        if year is None:
-            year = datetime.now().year
-            
-        all_orders = ServiceOrder.list(limit=10000)
-        
+    def get_services_by_expert() -> dict:
+        """Retorna total de serviços por técnico no mês atual."""
         data = defaultdict(int)
-        detailed_data = defaultdict(lambda: defaultdict(int))
-        
-        # Filtra ordens do mês/ano especificado
-        month_orders = [
-            order for order in all_orders 
-            if (order.os_data_agendamento.month == month and 
-                order.os_data_agendamento.year == year)
-        ]
-        
-        for order in month_orders:
-            # Técnico responsável
-            main_expert = Expert.get_by_id(order.os_tecnico_responsavel)
-            if main_expert:
-                data[main_expert.nome] += 1
-                
-                # Contar por categoria
-                category = TypeService.get_by_id(order.type_service_id)
-                category_name = category.name if category else 'Desconhecida'
-                detailed_data[main_expert.nome][category_name] += 1
-            
-            # Técnicos auxiliares
-            for assistant in order.os_tecnicos_auxiliares:
-                data[assistant.nome] += 1
-                category = TypeService.get_by_id(order.type_service_id)
-                category_name = category.name if category else 'Desconhecida'
-                detailed_data[assistant.nome][category_name] += 1
-        
-        # Converter detailed_data para formato serializável
-        detailed_data_serializable = {}
-        for expert_name, categories in detailed_data.items():
-            detailed_data_serializable[expert_name] = {
-                'categories': dict(categories),
-                'total': data[expert_name]
-            }
-        
+        now = datetime.now()
+        mes_atual = now.month
+        ano_atual = now.year
+
+        experts = Expert.list_active(limit=10000)
+        for expert in experts:
+            # Técnico responsável (somente OS do mês atual)
+            for order in expert.responsible_orders:
+                if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
+                    data[expert.nome] += 1
+
+            # Técnico auxiliar (somente OS do mês atual)
+            for order in expert.assistant_orders:
+                if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
+                    data[expert.nome] += 1
+
         return {
             'labels': list(data.keys()),
-            'data': list(data.values()),
-            'detailed_data': detailed_data_serializable
+            'data': list(data.values())
         }
-        
+
     @staticmethod
     def get_services_with_assist() -> dict:
         """Retorna total de ordens com e sem auxílio no mês atual."""
