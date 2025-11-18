@@ -1,34 +1,22 @@
-// metrics.js
-
-// Variáveis globais
 let currentMonth, currentYear;
-let charts = {}; // Objeto para armazenar referências dos gráficos
+let charts = {};
 let resizeTimeout;
 
-// Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Inicializando dashboard responsivo...');
-    
-    // Configurar filtro de data para o mês atual
     const now = new Date();
     currentMonth = now.getMonth() + 1;
     currentYear = now.getFullYear();
     
     document.getElementById('monthFilter').value = currentMonth - 1;
     
-    // Carregar anos disponíveis do backend
     loadAvailableYears(currentYear);
     
-    // Adicionar event listeners para os filtros
     document.getElementById('monthFilter').addEventListener('change', updateDashboard);
     document.getElementById('yearFilter').addEventListener('change', updateDashboard);
     
-    // Inicializar redimensionamento responsivo
     initResponsiveBehavior();
     
-    // Forçar redesenho dos gráficos quando a orientação mudar
     window.addEventListener('orientationchange', function() {
-        console.log('Orientação da tela alterada, recriando gráficos...');
         setTimeout(() => {
             const month = parseInt(document.getElementById('monthFilter').value) + 1;
             const year = parseInt(document.getElementById('yearFilter').value);
@@ -36,21 +24,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
-    // Ajustar layout inicial
     adjustLayoutForScreenSize();
 });
 
-// Inicializar comportamento responsivo
 function initResponsiveBehavior() {
-    console.log('Inicializando comportamento responsivo...');
-    
-    // Debounced resize handler
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(function() {
-            console.log('Redimensionamento detectado, ajustando layout...');
             adjustLayoutForScreenSize();
-            // Recriar gráficos apenas se necessário (mudança significativa de tamanho)
+          
             const month = parseInt(document.getElementById('monthFilter').value) + 1;
             const year = parseInt(document.getElementById('yearFilter').value);
             loadDashboardData(month, year);
@@ -58,7 +40,6 @@ function initResponsiveBehavior() {
     });
 }
 
-// Ajustar layout baseado no tamanho da tela
 function adjustLayoutForScreenSize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -67,9 +48,6 @@ function adjustLayoutForScreenSize() {
     const isSmallMobile = width < 480;
     const isLandscape = width > height && height < 500;
     
-    console.log(`Ajustando layout para: ${width}x${height}, Mobile: ${isMobile}, Tablet: ${isTablet}`);
-    
-    // Ajustar padding do body
     if (isSmallMobile) {
         document.body.style.padding = '0.25rem';
     } else if (isMobile) {
@@ -94,29 +72,24 @@ function adjustLayoutForScreenSize() {
         }
     });
     
-    // Ajustar grid de métricas para mobile muito pequeno
     const metricsGrid = document.querySelector('.metrics-grid');
     if (isSmallMobile) {
         metricsGrid.style.gridTemplateColumns = '1fr';
     }
     
-    // Ajustar tabela
     makeTableResponsive();
 }
 
-// Carregar anos disponíveis
+
 async function loadAvailableYears(currentYear) {
     try {
-        console.log('Carregando anos disponíveis...');
         const response = await fetch('/api/available-months');
         const data = await response.json();
         
         if (data.success) {
-            console.log('Anos disponíveis carregados:', data.data);
             const yearSelect = document.getElementById('yearFilter');
             yearSelect.innerHTML = '';
             
-            // Extrair anos únicos e ordenar
             const uniqueYears = [...new Set(data.data.map(item => item.year))].sort((a, b) => b - a);
             
             uniqueYears.forEach(year => {
@@ -125,19 +98,14 @@ async function loadAvailableYears(currentYear) {
                 option.textContent = year;
                 yearSelect.appendChild(option);
             });
-            
-            // Definir ano atual como padrão
+         
             yearSelect.value = currentYear;
             
-            // Carregar dados iniciais
-            console.log('Carregando dados iniciais para:', currentMonth, currentYear);
             loadDashboardData(currentMonth, currentYear);
         } else {
-            console.error('Erro ao carregar anos disponíveis:', data.error);
             loadDashboardData(currentMonth, currentYear);
         }
     } catch (error) {
-        console.error('Erro ao carregar anos:', error);
         loadDashboardData(currentMonth, currentYear);
     }
 }
@@ -146,60 +114,40 @@ async function loadAvailableYears(currentYear) {
 function updateDashboard() {
     const month = parseInt(document.getElementById('monthFilter').value) + 1;
     const year = parseInt(document.getElementById('yearFilter').value);
-    console.log('Atualizando dashboard para:', month, year);
     loadDashboardData(month, year);
 }
 
-// Carregar dados do dashboard
 async function loadDashboardData(month, year) {
     try {
-        console.log('Iniciando carregamento de dados para:', month, year);
         showLoadingState();
         
         const response = await fetch(`/api/data?month=${month}&year=${year}`);
         const result = await response.json();
         
-        console.log('Dados recebidos:', result);
-        
         if (result.success) {
             const dashboardData = result.data;
-            
-            // Atualizar métricas
             updateMetrics(dashboardData);
-            
-            // Atualizar gráficos
             updateCharts(dashboardData);
-            
-            // Atualizar tabela de serviços repetidos
             updateRepeatedServicesTable(dashboardData.repeatedServicesList);
-            
-            // Atualizar footer com informações do filtro
             updateFooter(result.filters);
-            
-            console.log('Dashboard atualizado com sucesso!');
-            
         } else {
-            console.error('Erro ao carregar dados:', result.error);
             showError('Erro ao carregar dados do dashboard');
         }
     } catch (error) {
-        console.error('Erro na requisição:', error);
         showError('Erro de conexão com o servidor');
     } finally {
         hideLoadingState();
     }
 }
 
-// Atualizar métricas principais
 function updateMetrics(data) {
-    console.log('Atualizando métricas:', data);
     document.getElementById('totalServices').textContent = data.totalServices || 0;
     document.getElementById('totalExperts').textContent = data.totalExperts || 0;
     document.getElementById('servicesWithAssist').textContent = data.servicesWithAssist || 0;
     document.getElementById('repeatedServices').textContent = data.repeatedServices || 0;
 }
 
-// Função para ajustar opções dos gráficos para responsividade
+
 function getResponsiveChartOptions(chartType) {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -225,7 +173,7 @@ function getResponsiveChartOptions(chartType) {
                 }
             },
             tooltip: {
-                enabled: !isSmallMobile, // Desativar tooltips em mobile muito pequeno
+                enabled: !isSmallMobile,
                 titleFont: {
                     size: isSmallMobile ? 9 : (isMobile ? 10 : 11)
                 },
@@ -310,25 +258,14 @@ function getResponsiveChartOptions(chartType) {
     return baseOptions;
 }
 
-// Atualizar gráficos
+
 function updateCharts(data) {
-    console.log('Atualizando gráficos com dados:', data);
-    
-    // Destruir gráficos existentes
     destroyExistingCharts();
-    
-    // Remover mensagens de "sem dados" anteriores
     removeNoDataMessages();
-    
-    // Ajustar layout antes de criar gráficos
     adjustLayoutForScreenSize();
-    
-    // Gráfico de serviços por técnico
     if (data.servicesByExpert && data.servicesByExpert.labels && data.servicesByExpert.labels.length > 0) {
-        console.log('Criando gráfico de serviços por técnico');
         const servicesByExpertCtx = document.getElementById('servicesByExpertChart').getContext('2d');
         
-        // Limitar e formatar labels para diferentes tamanhos de tela
         const labels = data.servicesByExpert.labels.map(label => {
             const width = window.innerWidth;
             if (width < 480 && label.length > 8) {
@@ -356,13 +293,11 @@ function updateCharts(data) {
             options: getResponsiveChartOptions('bar')
         });
     } else {
-        console.log('Sem dados para gráfico de serviços por técnico');
         showNoDataMessage('servicesByExpertChart', 'Nenhum dado disponível para serviços por técnico');
     }
     
     // Gráfico de serviços por categoria
     if (data.servicesByCategory && data.servicesByCategory.labels && data.servicesByCategory.labels.length > 0) {
-        console.log('Criando gráfico de serviços por categoria');
         const servicesByCategoryCtx = document.getElementById('servicesByCategoryChart').getContext('2d');
         
         charts.servicesByCategory = new Chart(servicesByCategoryCtx, {
@@ -415,13 +350,11 @@ function updateCharts(data) {
             }
         });
     } else {
-        console.log('Sem dados para gráfico de serviços por categoria');
         showNoDataMessage('servicesByCategoryChart', 'Nenhum dado disponível para serviços por categoria');
     }
     
     // Gráfico de serviços com auxílio
     if (data.servicesWithAssistChart && data.servicesWithAssistChart.labels && data.servicesWithAssistChart.labels.length > 0) {
-        console.log('Criando gráfico de serviços com auxílio');
         const servicesWithAssistCtx = document.getElementById('servicesWithAssistChart').getContext('2d');
         
         charts.servicesWithAssist = new Chart(servicesWithAssistCtx, {
@@ -462,16 +395,13 @@ function updateCharts(data) {
             }
         });
     } else {
-        console.log('Sem dados para gráfico de serviços com auxílio');
         showNoDataMessage('servicesWithAssistChart', 'Nenhum dado disponível para serviços com auxílio');
     }
     
     // Gráfico de quem ajudou quem
     if (data.assistanceNetwork && data.assistanceNetwork.labels && data.assistanceNetwork.labels.length > 0) {
-        console.log('Criando gráfico de rede de assistência');
         const assistanceNetworkCtx = document.getElementById('assistanceNetworkChart').getContext('2d');
         
-        // Preparar datasets para mobile
         const datasets = data.assistanceNetwork.datasets.map(dataset => ({
             ...dataset,
             borderRadius: window.innerWidth < 480 ? 1 : (window.innerWidth < 768 ? 2 : 4),
@@ -499,7 +429,6 @@ function updateCharts(data) {
             }
         });
     } else {
-        console.log('Sem dados para gráfico de rede de assistência');
         showNoDataMessage('assistanceNetworkChart', 'Nenhum dado disponível para rede de assistência');
     }
 }
@@ -666,7 +595,6 @@ function updateFooter(filters) {
 
 // Destruir gráficos existentes
 function destroyExistingCharts() {
-    console.log('Destruindo gráficos existentes...');
     Object.values(charts).forEach(chart => {
         if (chart && typeof chart.destroy === 'function') {
             chart.destroy();
