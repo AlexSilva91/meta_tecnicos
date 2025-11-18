@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Serviços</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_metrics.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-chart-line"></i> Dashboard de Serviços</h1>
+            <div class="date-filter">
+                <i class="fas fa-calendar-alt"></i>
+                <select id="monthFilter">
+                    <option value="0">Janeiro</option>
+                    <option value="1">Fevereiro</option>
+                    <option value="2">Março</option>
+                    <option value="3">Abril</option>
+                    <option value="4">Maio</option>
+                    <option value="5">Junho</option>
+                    <option value="6">Julho</option>
+                    <option value="7">Agosto</option>
+                    <option value="8">Setembro</option>
+                    <option value="9">Outubro</option>
+                    <option value="10">Novembro</option>
+                    <option value="11">Dezembro</option>
+                </select>
+                <select id="yearFilter">
+                    <!-- Opções de ano serão preenchidas via JavaScript -->
+                </select>
+            </div>
+        </header>
+
+        <!-- Métricas Principais -->
+        <div class="metrics-grid">
+            <div class="stat-card gradient-blue">
+                <div class="metric-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div>
+                    <div class="metric-value" id="totalServices">0</div>
+                    <div class="metric-label">Total de Serviços</div>
+                </div>
+            </div>
+            <div class="stat-card gradient-green">
+                <div class="metric-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <div class="metric-value" id="totalExperts">0</div>
+                    <div class="metric-label">Técnicos Ativos</div>
+                </div>
+            </div>
+            <div class="stat-card gradient-purple">
+                <div class="metric-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <div>
+                    <div class="metric-value" id="servicesWithAssist">0</div>
+                    <div class="metric-label">Serviços com Auxílio</div>
+                </div>
+            </div>
+            <div class="stat-card gradient-orange">
+                <div class="metric-icon">
+                    <i class="fas fa-redo"></i>
+                </div>
+                <div>
+                    <div class="metric-value" id="repeatedServices">0</div>
+                    <div class="metric-label">Serviços Repetidos</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="charts-grid">
+            <!-- Total por Técnico -->
+            <div class="chart-container" data-chart-type="bar">
+                <div class="chart-title">
+                    <i class="fas fa-user-cog"></i> Total de Serviços por Técnico
+                </div>
+                <div class="chart-area">
+                    <canvas id="servicesByExpertChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Total por Categoria -->
+            <div class="chart-container" data-chart-type="doughnut">
+                <div class="chart-title">
+                    <i class="fas fa-list-alt"></i> Serviços por Categoria
+                </div>
+                <div class="chart-area">
+                    <canvas id="servicesByCategoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Serviços com Auxílio -->
+            <div class="chart-container" data-chart-type="pie">
+                <div class="chart-title">
+                    <i class="fas fa-hands-helping"></i> Serviços com Auxílio
+                </div>
+                <div class="chart-area">
+                    <canvas id="servicesWithAssistChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Quem Ajudou Quem -->
+            <div class="chart-container" data-chart-type="bar">
+                <div class="chart-title">
+                    <i class="fas fa-people-arrows"></i> Quem Ajudou Quem
+                </div>
+                <div class="chart-area">
+                    <canvas id="assistanceNetworkChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Serviços Repetidos -->
+            <div class="chart-container chart-full-width">
+                <div class="chart-title">
+                    <i class="fas fa-history"></i> Serviços Repetidos (menos de 30 dias)
+                </div>
+                <div class="table-container">
+                    <table id="repeatedServicesTable">
+                        <thead>
+                            <tr>
+                                <th>Contrato</th>
+                                <th>Categoria</th>
+                                <th>Técnicos</th>
+                                <th>Data do Primeiro Serviço</th>
+                                <th>Data do Segundo Serviço</th>
+                                <th>Dias Entre Serviços</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dados serão preenchidos via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Dashboard atualizado automaticamente - Dados referentes ao mês atual</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/metrics.js') }}"></script>
+</body>
+</html>

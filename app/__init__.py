@@ -50,8 +50,10 @@ def create_app(config_object=None):
     from .service.user_service import UserService
     from .routes.login import login_bp
     from .routes.admin_route import admin_bp
+    from .routes.master_route import master_bp
 
-    app.register_blueprint(login_bp)
+    app.register_blueprint(master_bp)
+    app.register_blueprint(login_bp, url_prefix='/login')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     # --- Função que carrega o usuário logado ---
