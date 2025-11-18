@@ -2,15 +2,19 @@
 
 // Variáveis globais
 let currentMonth, currentYear;
+let charts = {}; // Objeto para armazenar referências dos gráficos
+let resizeTimeout;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando dashboard responsivo...');
+    
     // Configurar filtro de data para o mês atual
     const now = new Date();
-    currentMonth = now.getMonth() + 1; // +1 porque no backend os meses são 1-12
+    currentMonth = now.getMonth() + 1;
     currentYear = now.getFullYear();
     
-    document.getElementById('monthFilter').value = currentMonth - 1; // -1 porque no frontend são 0-11
+    document.getElementById('monthFilter').value = currentMonth - 1;
     
     // Carregar anos disponíveis do backend
     loadAvailableYears(currentYear);
@@ -18,7 +22,87 @@ document.addEventListener('DOMContentLoaded', function() {
     // Adicionar event listeners para os filtros
     document.getElementById('monthFilter').addEventListener('change', updateDashboard);
     document.getElementById('yearFilter').addEventListener('change', updateDashboard);
+    
+    // Inicializar redimensionamento responsivo
+    initResponsiveBehavior();
+    
+    // Forçar redesenho dos gráficos quando a orientação mudar
+    window.addEventListener('orientationchange', function() {
+        console.log('Orientação da tela alterada, recriando gráficos...');
+        setTimeout(() => {
+            const month = parseInt(document.getElementById('monthFilter').value) + 1;
+            const year = parseInt(document.getElementById('yearFilter').value);
+            loadDashboardData(month, year);
+        }, 300);
+    });
+
+    // Ajustar layout inicial
+    adjustLayoutForScreenSize();
 });
+
+// Inicializar comportamento responsivo
+function initResponsiveBehavior() {
+    console.log('Inicializando comportamento responsivo...');
+    
+    // Debounced resize handler
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            console.log('Redimensionamento detectado, ajustando layout...');
+            adjustLayoutForScreenSize();
+            // Recriar gráficos apenas se necessário (mudança significativa de tamanho)
+            const month = parseInt(document.getElementById('monthFilter').value) + 1;
+            const year = parseInt(document.getElementById('yearFilter').value);
+            loadDashboardData(month, year);
+        }, 250);
+    });
+}
+
+// Ajustar layout baseado no tamanho da tela
+function adjustLayoutForScreenSize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const isMobile = width < 768;
+    const isTablet = width >= 768 && width < 1024;
+    const isSmallMobile = width < 480;
+    const isLandscape = width > height && height < 500;
+    
+    console.log(`Ajustando layout para: ${width}x${height}, Mobile: ${isMobile}, Tablet: ${isTablet}`);
+    
+    // Ajustar padding do body
+    if (isSmallMobile) {
+        document.body.style.padding = '0.25rem';
+    } else if (isMobile) {
+        document.body.style.padding = '0.5rem';
+    } else {
+        document.body.style.padding = '1rem';
+    }
+    
+    // Ajustar alturas dos gráficos
+    const chartContainers = document.querySelectorAll('.chart-container');
+    chartContainers.forEach(container => {
+        if (isLandscape) {
+            container.style.minHeight = '180px';
+        } else if (isSmallMobile) {
+            container.style.minHeight = '220px';
+        } else if (isMobile) {
+            container.style.minHeight = '250px';
+        } else if (isTablet) {
+            container.style.minHeight = '300px';
+        } else {
+            container.style.minHeight = '350px';
+        }
+    });
+    
+    // Ajustar grid de métricas para mobile muito pequeno
+    const metricsGrid = document.querySelector('.metrics-grid');
+    if (isSmallMobile) {
+        metricsGrid.style.gridTemplateColumns = '1fr';
+    }
+    
+    // Ajustar tabela
+    makeTableResponsive();
+}
 
 // Carregar anos disponíveis
 async function loadAvailableYears(currentYear) {
@@ -60,7 +144,7 @@ async function loadAvailableYears(currentYear) {
 
 // Atualizar dashboard quando os filtros mudarem
 function updateDashboard() {
-    const month = parseInt(document.getElementById('monthFilter').value) + 1; // +1 para converter para 1-12
+    const month = parseInt(document.getElementById('monthFilter').value) + 1;
     const year = parseInt(document.getElementById('yearFilter').value);
     console.log('Atualizando dashboard para:', month, year);
     loadDashboardData(month, year);
@@ -115,58 +199,161 @@ function updateMetrics(data) {
     document.getElementById('repeatedServices').textContent = data.repeatedServices || 0;
 }
 
+// Função para ajustar opções dos gráficos para responsividade
+function getResponsiveChartOptions(chartType) {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const isMobile = width < 768;
+    const isTablet = width >= 768 && width < 1024;
+    const isSmallMobile = width < 480;
+    const isLandscape = width > height && height < 500;
+    
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        resizeDelay: 50,
+        plugins: {
+            legend: {
+                display: true,
+                labels: {
+                    color: '#94a3b8',
+                    font: {
+                        size: isSmallMobile ? 8 : (isMobile ? 9 : (isTablet ? 10 : 11))
+                    },
+                    padding: isSmallMobile ? 8 : (isMobile ? 10 : 12),
+                    boxWidth: isSmallMobile ? 10 : (isMobile ? 12 : 14)
+                }
+            },
+            tooltip: {
+                enabled: !isSmallMobile, // Desativar tooltips em mobile muito pequeno
+                titleFont: {
+                    size: isSmallMobile ? 9 : (isMobile ? 10 : 11)
+                },
+                bodyFont: {
+                    size: isSmallMobile ? 8 : (isMobile ? 9 : 10)
+                },
+                padding: isSmallMobile ? 6 : (isMobile ? 8 : 10)
+            }
+        }
+    };
+
+    if (chartType === 'bar') {
+        return {
+            ...baseOptions,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(100, 116, 139, 0.2)'
+                    },
+                    ticks: {
+                        color: '#94a3b8',
+                        stepSize: 1,
+                        font: {
+                            size: isSmallMobile ? 7 : (isMobile ? 8 : (isTablet ? 9 : 10))
+                        },
+                        padding: 3,
+                        maxTicksLimit: isLandscape ? 5 : (isSmallMobile ? 4 : 6)
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#94a3b8',
+                        font: {
+                            size: isSmallMobile ? 7 : (isMobile ? 8 : (isTablet ? 9 : 10))
+                        },
+                        maxRotation: isSmallMobile ? 90 : (isMobile ? 45 : (isTablet ? 30 : 0)),
+                        minRotation: isSmallMobile ? 90 : (isMobile ? 45 : 0),
+                        padding: 2
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    left: isSmallMobile ? 2 : (isMobile ? 5 : 8),
+                    right: isSmallMobile ? 2 : (isMobile ? 5 : 8),
+                    top: isSmallMobile ? 2 : (isMobile ? 5 : 8),
+                    bottom: isSmallMobile ? 2 : (isMobile ? 5 : 8)
+                }
+            },
+            barPercentage: isSmallMobile ? 0.6 : (isMobile ? 0.7 : 0.8),
+            categoryPercentage: isSmallMobile ? 0.6 : (isMobile ? 0.7 : 0.8)
+        };
+    }
+
+    if (chartType === 'doughnut' || chartType === 'pie') {
+        const legendPosition = isSmallMobile ? 'bottom' : (isMobile ? 'bottom' : 'right');
+        
+        return {
+            ...baseOptions,
+            plugins: {
+                ...baseOptions.plugins,
+                legend: {
+                    ...baseOptions.plugins.legend,
+                    position: legendPosition,
+                    labels: {
+                        ...baseOptions.plugins.legend.labels,
+                        boxWidth: isSmallMobile ? 8 : (isMobile ? 10 : 12)
+                    }
+                }
+            },
+            cutout: isSmallMobile ? '40%' : (isMobile ? '50%' : '60%'),
+            layout: {
+                padding: isSmallMobile ? 5 : (isMobile ? 10 : 15)
+            }
+        };
+    }
+
+    return baseOptions;
+}
+
 // Atualizar gráficos
 function updateCharts(data) {
     console.log('Atualizando gráficos com dados:', data);
     
-    // Destruir gráficos existentes para evitar sobreposição
+    // Destruir gráficos existentes
     destroyExistingCharts();
+    
+    // Remover mensagens de "sem dados" anteriores
+    removeNoDataMessages();
+    
+    // Ajustar layout antes de criar gráficos
+    adjustLayoutForScreenSize();
     
     // Gráfico de serviços por técnico
     if (data.servicesByExpert && data.servicesByExpert.labels && data.servicesByExpert.labels.length > 0) {
         console.log('Criando gráfico de serviços por técnico');
         const servicesByExpertCtx = document.getElementById('servicesByExpertChart').getContext('2d');
-        new Chart(servicesByExpertCtx, {
+        
+        // Limitar e formatar labels para diferentes tamanhos de tela
+        const labels = data.servicesByExpert.labels.map(label => {
+            const width = window.innerWidth;
+            if (width < 480 && label.length > 8) {
+                return label.substring(0, 6) + '...';
+            } else if (width < 768 && label.length > 12) {
+                return label.substring(0, 10) + '...';
+            }
+            return label;
+        });
+        
+        charts.servicesByExpert = new Chart(servicesByExpertCtx, {
             type: 'bar',
             data: {
-                labels: data.servicesByExpert.labels,
+                labels: labels,
                 datasets: [{
                     label: 'Serviços Realizados',
                     data: data.servicesByExpert.data,
                     backgroundColor: 'rgba(0, 150, 255, 0.7)',
                     borderColor: 'rgba(0, 150, 255, 1)',
-                    borderWidth: 1
+                    borderWidth: 1,
+                    borderRadius: window.innerWidth < 480 ? 2 : (window.innerWidth < 768 ? 3 : 4),
+                    borderSkipped: false,
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(100, 116, 139, 0.2)'
-                        },
-                        ticks: {
-                            color: '#94a3b8',
-                            stepSize: 1
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(100, 116, 139, 0.2)'
-                        },
-                        ticks: {
-                            color: '#94a3b8'
-                        }
-                    }
-                }
-            }
+            options: getResponsiveChartOptions('bar')
         });
     } else {
         console.log('Sem dados para gráfico de serviços por técnico');
@@ -177,7 +364,8 @@ function updateCharts(data) {
     if (data.servicesByCategory && data.servicesByCategory.labels && data.servicesByCategory.labels.length > 0) {
         console.log('Criando gráfico de serviços por categoria');
         const servicesByCategoryCtx = document.getElementById('servicesByCategoryChart').getContext('2d');
-        new Chart(servicesByCategoryCtx, {
+        
+        charts.servicesByCategory = new Chart(servicesByCategoryCtx, {
             type: 'doughnut',
             data: {
                 labels: data.servicesByCategory.labels,
@@ -191,15 +379,7 @@ function updateCharts(data) {
                         'rgba(239, 68, 68, 0.7)',
                         'rgba(255, 193, 7, 0.7)',
                         'rgba(13, 202, 240, 0.7)',
-                        'rgba(102, 16, 242, 0.7)',
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(199, 199, 199, 0.7)',
-                        'rgba(83, 102, 255, 0.7)',
-                        'rgba(40, 159, 64, 0.7)',
-                        'rgba(210, 99, 132, 0.7)'
+                        'rgba(102, 16, 242, 0.7)'
                     ],
                     borderColor: [
                         'rgba(0, 150, 255, 1)',
@@ -209,30 +389,25 @@ function updateCharts(data) {
                         'rgba(239, 68, 68, 1)',
                         'rgba(255, 193, 7, 1)',
                         'rgba(13, 202, 240, 1)',
-                        'rgba(102, 16, 242, 1)',
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)',
-                        'rgba(199, 199, 199, 1)',
-                        'rgba(83, 102, 255, 1)',
-                        'rgba(40, 159, 64, 1)',
-                        'rgba(210, 99, 132, 1)'
+                        'rgba(102, 16, 242, 1)'
                     ],
-                    borderWidth: 1
+                    borderWidth: 1,
+                    hoverOffset: window.innerWidth < 480 ? 4 : (window.innerWidth < 768 ? 6 : 8)
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...getResponsiveChartOptions('doughnut'),
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#94a3b8',
-                            padding: 15,
-                            font: {
-                                size: 11
+                    ...getResponsiveChartOptions('doughnut').plugins,
+                    tooltip: {
+                        ...getResponsiveChartOptions('doughnut').plugins.tooltip,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
                             }
                         }
                     }
@@ -248,35 +423,31 @@ function updateCharts(data) {
     if (data.servicesWithAssistChart && data.servicesWithAssistChart.labels && data.servicesWithAssistChart.labels.length > 0) {
         console.log('Criando gráfico de serviços com auxílio');
         const servicesWithAssistCtx = document.getElementById('servicesWithAssistChart').getContext('2d');
-        new Chart(servicesWithAssistCtx, {
+        
+        charts.servicesWithAssist = new Chart(servicesWithAssistCtx, {
             type: 'pie',
             data: {
                 labels: data.servicesWithAssistChart.labels,
                 datasets: [{
                     data: data.servicesWithAssistChart.data,
                     backgroundColor: [
-                        'rgba(239, 68, 68, 0.7)',  // Sem Auxílio - Vermelho
-                        'rgba(34, 197, 94, 0.7)'   // Com Auxílio - Verde
+                        'rgba(239, 68, 68, 0.7)',
+                        'rgba(34, 197, 94, 0.7)'
                     ],
                     borderColor: [
                         'rgba(239, 68, 68, 1)',
                         'rgba(34, 197, 94, 1)'
                     ],
-                    borderWidth: 1
+                    borderWidth: 1,
+                    hoverOffset: window.innerWidth < 480 ? 4 : (window.innerWidth < 768 ? 6 : 8)
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...getResponsiveChartOptions('pie'),
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#94a3b8',
-                            padding: 15
-                        }
-                    },
+                    ...getResponsiveChartOptions('pie').plugins,
                     tooltip: {
+                        ...getResponsiveChartOptions('pie').plugins.tooltip,
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
@@ -299,41 +470,29 @@ function updateCharts(data) {
     if (data.assistanceNetwork && data.assistanceNetwork.labels && data.assistanceNetwork.labels.length > 0) {
         console.log('Criando gráfico de rede de assistência');
         const assistanceNetworkCtx = document.getElementById('assistanceNetworkChart').getContext('2d');
-        new Chart(assistanceNetworkCtx, {
+        
+        // Preparar datasets para mobile
+        const datasets = data.assistanceNetwork.datasets.map(dataset => ({
+            ...dataset,
+            borderRadius: window.innerWidth < 480 ? 1 : (window.innerWidth < 768 ? 2 : 4),
+            borderSkipped: false,
+        }));
+        
+        charts.assistanceNetwork = new Chart(assistanceNetworkCtx, {
             type: 'bar',
             data: {
                 labels: data.assistanceNetwork.labels,
-                datasets: data.assistanceNetwork.datasets
+                datasets: datasets
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                ...getResponsiveChartOptions('bar'),
                 plugins: {
+                    ...getResponsiveChartOptions('bar').plugins,
                     legend: {
-                        position: 'bottom',
+                        position: window.innerWidth < 480 ? 'bottom' : (window.innerWidth < 768 ? 'bottom' : 'top'),
                         labels: {
-                            color: '#94a3b8',
-                            padding: 15
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(100, 116, 139, 0.2)'
-                        },
-                        ticks: {
-                            color: '#94a3b8',
-                            stepSize: 1
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(100, 116, 139, 0.2)'
-                        },
-                        ticks: {
-                            color: '#94a3b8'
+                            ...getResponsiveChartOptions('bar').plugins.legend.labels,
+                            boxWidth: window.innerWidth < 480 ? 8 : (window.innerWidth < 768 ? 10 : 12)
                         }
                     }
                 }
@@ -351,42 +510,142 @@ function updateRepeatedServicesTable(data) {
     tableBody.innerHTML = '';
     
     if (data && data.length > 0) {
-        // Limitar a exibição para os primeiros 50 registros para performance
-        const displayData = data.slice(0, 50);
+        // Limitar a exibição para performance baseado no tamanho da tela
+        const width = window.innerWidth;
+        const displayLimit = width < 480 ? 10 : (width < 768 ? 15 : (width < 1024 ? 25 : 50));
+        const displayData = data.slice(0, displayLimit);
         
         displayData.forEach(item => {
             const row = document.createElement('tr');
+            
+            // Formatar dados para diferentes tamanhos de tela
+            const contract = formatForScreenSize(item.contract, { 
+                smallMobile: 6, 
+                mobile: 8, 
+                default: 12 
+            });
+            
+            const category = formatForScreenSize(item.category, { 
+                smallMobile: 10, 
+                mobile: 12, 
+                default: 20 
+            });
+            
+            const experts = item.experts ? 
+                formatArrayForScreenSize(item.experts, {
+                    smallMobile: 6,
+                    mobile: 8,
+                    default: 15
+                })
+                : 'N/A';
+            
+            const firstDate = formatDateForScreenSize(item.firstServiceDate);
+            const secondDate = formatDateForScreenSize(item.secondServiceDate);
+            
             row.innerHTML = `
-                <td>${item.contract || 'N/A'}</td>
-                <td>${item.category || 'N/A'}</td>
-                <td>${item.experts ? item.experts.join(', ') : 'N/A'}</td>
-                <td>${item.firstServiceDate || 'N/A'}</td>
-                <td>${item.secondServiceDate || 'N/A'}</td>
-                <td><span class="status-badge ${getDaysBadgeClass(item.daysBetween)}">${item.daysBetween || 0} dias</span></td>
+                <td data-label="Contrato">${contract || 'N/A'}</td>
+                <td data-label="Categoria">${category || 'N/A'}</td>
+                <td data-label="Técnicos">${experts}</td>
+                <td data-label="Primeiro Serviço">${firstDate || 'N/A'}</td>
+                <td data-label="Segundo Serviço">${secondDate || 'N/A'}</td>
+                <td data-label="Dias Entre"><span class="status-badge ${getDaysBadgeClass(item.daysBetween)}">${item.daysBetween || 0} dias</span></td>
             `;
             tableBody.appendChild(row);
         });
 
         // Adicionar mensagem se houver mais registros
-        if (data.length > 50) {
+        if (data.length > displayLimit) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="6" style="text-align: center; color: #94a3b8; padding: 1rem; background: rgba(30, 41, 59, 0.5);">
+                <td colspan="6" style="text-align: center; color: #94a3b8; padding: 0.75rem; background: rgba(30, 41, 59, 0.5); font-size: ${width < 480 ? '0.7rem' : '0.8rem'};">
                     <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                    Mostrando 50 de ${data.length} serviços repetidos. Use filtros para refinar a busca.
+                    Mostrando ${displayLimit} de ${data.length} serviços repetidos
                 </td>
             `;
             tableBody.appendChild(row);
         }
+        
+        // Adicionar classes responsivas à tabela
+        makeTableResponsive();
     } else {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="6" style="text-align: center; color: #94a3b8; padding: 2rem;">
+            <td colspan="6" style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: ${window.innerWidth < 480 ? '0.8rem' : '0.9rem'};">
                 <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
                 Nenhum serviço repetido encontrado para o período selecionado
             </td>
         `;
         tableBody.appendChild(row);
+    }
+}
+
+// Funções auxiliares para formatação responsiva
+function formatForScreenSize(text, limits) {
+    if (!text) return 'N/A';
+    
+    const width = window.innerWidth;
+    let limit;
+    
+    if (width < 480) {
+        limit = limits.smallMobile;
+    } else if (width < 768) {
+        limit = limits.mobile;
+    } else {
+        limit = limits.default;
+    }
+    
+    return text.length > limit ? text.substring(0, limit) + '...' : text;
+}
+
+function formatArrayForScreenSize(array, limits) {
+    if (!array || !Array.isArray(array)) return 'N/A';
+    
+    const width = window.innerWidth;
+    let limit;
+    
+    if (width < 480) {
+        limit = limits.smallMobile;
+    } else if (width < 768) {
+        limit = limits.mobile;
+    } else {
+        limit = limits.default;
+    }
+    
+    return array.map(item => 
+        item.length > limit ? item.substring(0, limit) + '...' : item
+    ).join(', ');
+}
+
+function formatDateForScreenSize(dateString) {
+    if (!dateString) return 'N/A';
+    
+    const width = window.innerWidth;
+    if (width < 480) {
+        // Formato curto para mobile muito pequeno: DD/MM
+        return dateString.substring(0, 5);
+    } else if (width < 768) {
+        // Formato médio para mobile: DD/MM/YY
+        return dateString.length > 10 ? dateString.substring(0, 8) : dateString;
+    }
+    
+    // Formato completo para tablet/desktop
+    return dateString;
+}
+
+// Função para tornar a tabela responsiva
+function makeTableResponsive() {
+    const table = document.getElementById('repeatedServicesTable');
+    const width = window.innerWidth;
+    
+    if (width < 768) {
+        table.classList.add('responsive-table');
+        if (width < 480) {
+            table.classList.add('small-mobile-table');
+        } else {
+            table.classList.remove('small-mobile-table');
+        }
+    } else {
+        table.classList.remove('responsive-table', 'small-mobile-table');
     }
 }
 
@@ -407,6 +666,15 @@ function updateFooter(filters) {
 
 // Destruir gráficos existentes
 function destroyExistingCharts() {
+    console.log('Destruindo gráficos existentes...');
+    Object.values(charts).forEach(chart => {
+        if (chart && typeof chart.destroy === 'function') {
+            chart.destroy();
+        }
+    });
+    charts = {};
+    
+    // Também destruir qualquer gráfico não gerenciado pelo objeto charts
     const chartCanvases = [
         'servicesByExpertChart',
         'servicesByCategoryChart',
@@ -425,9 +693,17 @@ function destroyExistingCharts() {
     });
 }
 
+// Nova função para remover mensagens de "sem dados"
+function removeNoDataMessages() {
+    const noDataElements = document.querySelectorAll('.chart-no-data');
+    noDataElements.forEach(element => element.remove());
+}
+
 // Mostrar mensagem de "sem dados"
 function showNoDataMessage(canvasId, message) {
     const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
     const container = canvas.parentElement;
     
     // Remover mensagens anteriores
@@ -436,11 +712,16 @@ function showNoDataMessage(canvasId, message) {
         existingNoData.remove();
     }
     
+    const width = window.innerWidth;
+    const fontSize = width < 480 ? '0.75rem' : (width < 768 ? '0.8rem' : '0.9rem');
+    const iconSize = width < 480 ? '1.5rem' : (width < 768 ? '2rem' : '2.5rem');
+    const padding = width < 480 ? '1rem' : '1.5rem';
+    
     const noDataDiv = document.createElement('div');
     noDataDiv.className = 'chart-no-data';
     noDataDiv.innerHTML = `
-        <i class="fas fa-chart-bar" style="font-size: 3rem; color: #94a3b8; margin-bottom: 1rem;"></i>
-        <p style="color: #94a3b8; text-align: center;">${message}</p>
+        <i class="fas fa-chart-bar" style="font-size: ${iconSize}; color: #94a3b8; margin-bottom: 0.5rem;"></i>
+        <p style="color: #94a3b8; text-align: center; font-size: ${fontSize}; margin: 0;">${message}</p>
     `;
     noDataDiv.style.cssText = `
         display: flex;
@@ -448,7 +729,8 @@ function showNoDataMessage(canvasId, message) {
         align-items: center;
         justify-content: center;
         height: 100%;
-        padding: 2rem;
+        padding: ${padding};
+        min-height: 150px;
     `;
     
     container.appendChild(noDataDiv);
@@ -459,12 +741,16 @@ function showLoadingState() {
     // Remover loading anterior se existir
     hideLoadingState();
     
+    const width = window.innerWidth;
+    const fontSize = width < 480 ? '0.9rem' : (width < 768 ? '1rem' : '1.1rem');
+    const iconSize = width < 480 ? '1.5rem' : (width < 768 ? '1.75rem' : '2rem');
+    
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loadingOverlay';
     loadingDiv.innerHTML = `
         <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Carregando dados...</p>
+            <i class="fas fa-spinner fa-spin" style="font-size: ${iconSize};"></i>
+            <p style="font-size: ${fontSize}; margin-top: 0.5rem;">Carregando dados...</p>
         </div>
     `;
     loadingDiv.style.cssText = `
@@ -473,12 +759,13 @@ function showLoadingState() {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(10, 14, 23, 0.8);
+        background: rgba(10, 14, 23, 0.95);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 1000;
         color: white;
+        backdrop-filter: blur(5px);
     `;
     
     document.body.appendChild(loadingDiv);
@@ -503,12 +790,20 @@ function showError(message) {
         existingError.remove();
     }
     
+    const width = window.innerWidth;
+    const fontSize = width < 480 ? '0.75rem' : (width < 768 ? '0.8rem' : '0.9rem');
+    const maxWidth = width < 480 ? '85vw' : (width < 768 ? '300px' : '400px');
+    const padding = width < 480 ? '0.6rem' : '0.8rem';
+    
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
     errorDiv.innerHTML = `
-        <div style="background: rgba(239, 68, 68, 0.9); color: white; padding: 1rem; border-radius: 8px; margin: 1rem;">
+        <div style="background: rgba(239, 68, 68, 0.95); color: white; padding: ${padding}; border-radius: 8px; margin: 0.5rem; max-width: ${maxWidth}; font-size: ${fontSize};">
             <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
             ${message}
+            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; float: right; cursor: pointer; margin-left: 0.5rem; padding: 0;">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     `;
     
@@ -516,71 +811,13 @@ function showError(message) {
     const container = document.querySelector('.container');
     container.insertBefore(errorDiv, container.firstChild);
     
-    // Remover após 5 segundos
+    // Remover automaticamente após 8 segundos
     setTimeout(() => {
         if (errorDiv.parentNode) {
             errorDiv.remove();
         }
-    }, 5000);
+    }, 8000);
 }
-
-// Adicionar alguns estilos CSS dinamicamente para melhorar a UX
-const style = document.createElement('style');
-style.textContent = `
-    .loading-spinner {
-        text-align: center;
-        font-size: 1.2rem;
-    }
-    
-    .loading-spinner i {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-    }
-    
-    .chart-no-data {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        color: #94a3b8;
-    }
-    
-    .error-message {
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        z-index: 1001;
-        max-width: 300px;
-    }
-    
-    .status-badge {
-        padding: 0.3rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-block;
-        white-space: nowrap;
-    }
-    
-    .status-pending {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-    }
-    
-    .status-in-progress {
-        background: rgba(0, 123, 255, 0.2);
-        color: #007bff;
-    }
-    
-    .status-completed {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-    }
-`;
-document.head.appendChild(style);
 
 // Inicializar tooltips se estiver usando Bootstrap
 if (typeof bootstrap !== 'undefined') {

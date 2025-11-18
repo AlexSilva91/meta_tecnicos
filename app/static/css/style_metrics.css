@@ -1,4 +1,3 @@
-/* Estilos CSS otimizados - Gráficos com largura total e altura reduzida em 60% */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * {
@@ -7,94 +6,118 @@
     box-sizing: border-box;
 }
 
+:root {
+    --primary-color: #00ccff;
+    --bg-dark: #0a0e17;
+    --card-bg: rgba(30, 41, 59, 0.5);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(100, 116, 139, 0.2);
+}
+
 body {
     font-family: 'Inter', sans-serif;
-    background: #0a0e17;
+    background: var(--bg-dark);
     background-image:
         radial-gradient(circle at 10% 20%, rgba(0, 150, 255, 0.1) 0%, transparent 20%),
         radial-gradient(circle at 90% 80%, rgba(0, 255, 200, 0.1) 0%, transparent 20%);
-    color: #f1f5f9;
-    padding: 1rem;
+    color: var(--text-primary);
+    padding: 10rem;
     min-height: 100vh;
+    line-height: 1.5;
 }
 
 .container {
-    max-width: 1650px;
+    max-width: 100%;
     margin: 0 auto;
+    width: 100%;
 }
 
+/* Header Responsivo */
 .header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
     padding: 1rem 0;
-    border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+    border-bottom: 1px solid var(--border-color);
+}
+
+@media (min-width: 768px) {
+    .header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
 }
 
 .header h1 {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .header h1 {
+        text-align: left;
+    }
 }
 
 .header h1 i {
-    color: #00ccff;
+    color: var(--primary-color);
     margin-right: 0.5rem;
 }
 
 .date-filter {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    background: rgba(30, 41, 59, 0.5);
+    background: var(--card-bg);
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(100, 116, 139, 0.2);
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
 }
 
 .date-filter select {
     background: transparent;
     border: none;
-    color: #f1f5f9;
-    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
     outline: none;
+    min-width: 100px;
 }
 
 .date-filter select option {
     background: #1e293b;
 }
 
+/* Grid de Métricas */
 .metrics-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.875rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 640px) {
     .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .metrics-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1.25rem;
     }
 }
 
 .stat-card {
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
     border-radius: 12px;
-    padding: 1rem;
-    border: 1px solid rgba(100, 116, 139, 0.3);
+    padding: clamp(0.75rem, 2vw, 1rem);
+    border: 1px solid var(--border-color);
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+    min-height: 80px;
 }
 
 .stat-card:hover {
@@ -104,8 +127,8 @@ body {
 }
 
 .metric-icon {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: clamp(2.5rem, 6vw, 3rem);
+    height: clamp(2.5rem, 6vw, 3rem);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -113,56 +136,26 @@ body {
     flex-shrink: 0;
 }
 
-@media (min-width: 640px) {
-    .metric-icon {
-        width: 3rem;
-        height: 3rem;
-    }
-}
-
 .metric-icon i {
-    font-size: 1.125rem;
-}
-
-@media (min-width: 640px) {
-    .metric-icon i {
-        font-size: 1.25rem;
-    }
+    font-size: clamp(1rem, 3vw, 1.25rem);
 }
 
 .metric-value {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
     font-weight: 700;
     line-height: 1.2;
-    color: #f1f5f9;
-}
-
-@media (min-width: 640px) {
-    .metric-value {
-        font-size: 1.75rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .metric-value {
-        font-size: 2rem;
-    }
+    color: var(--text-primary);
 }
 
 .metric-label {
-    font-size: 0.75rem;
-    color: #94a3b8;
+    font-size: clamp(0.7rem, 2vw, 0.8rem);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 500;
 }
 
-@media (min-width: 640px) {
-    .metric-label {
-        font-size: 0.8125rem;
-    }
-}
-
+/* Gradientes */
 .gradient-blue {
     background: linear-gradient(135deg, rgba(0, 102, 255, 0.2) 0%, rgba(0, 204, 255, 0.2) 100%);
     border-color: rgba(0, 204, 255, 0.3);
@@ -183,19 +176,22 @@ body {
     border-color: rgba(249, 115, 22, 0.3);
 }
 
+/* Grid de Gráficos - TOTALMENTE RESPONSIVO */
 .charts-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1rem;
+    width: 100%;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
     .charts-grid {
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.25rem;
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
     .charts-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
@@ -206,13 +202,14 @@ body {
     position: relative;
     width: 100%;
     max-height: 500px;
-    background: rgba(30, 41, 59, 0.5);
+    background: var(--card-bg);
     border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid rgba(100, 116, 139, 0.2);
+    padding: clamp(1rem, 2vw, 1.5rem);
+    border: 1px solid var(--border-color);
     animation: chartFadeIn 0.5s ease-out;
     display: flex;
     flex-direction: column;
+    min-height: 300px; /* Altura mínima reduzida */
 }
 
 @keyframes chartFadeIn {
@@ -226,198 +223,103 @@ body {
     }
 }
 
-
-.chart-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 50px;
-    margin-top: 0.5rem;
-}
-
-.chart-container canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-    max-height: 100%;
-}
-
-.chart-title {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: #f1f5f9;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-@media (min-width: 640px) {
-    .chart-title {
-        font-size: 1rem;
-        margin-bottom: 0.75rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .chart-title {
-        font-size: 1.125rem;
-        margin-bottom: 1rem;
-    }
-}
-
-.chart-title i {
-    color: #00ccff;
-    font-size: 1rem;
-}
-
-@media (min-width: 640px) {
-    .chart-title i {
-        font-size: 1.125rem;
-    }
-}
-
 .chart-full-width {
     grid-column: 1 / -1;
 }
 
-/* ALTURAS RESPONSIVAS DOS GRÁFICOS - REDUZIDAS EM 60% */
-@media (max-width: 400px) {
+.chart-title {
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.chart-title i {
+    color: var(--primary-color);
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+}
+
+/* Container do Chart - TOTALMENTE RESPONSIVO */
+.chart-area {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 200px; /* Altura mínima reduzida */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-area canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Ajustes específicos para gráficos menores */
+@media (max-width: 767px) {
+    .chart-container {
+        min-height: 250px;
+    }
+    
     .chart-area {
-        min-height: 64px; /* REDUZIDO 60% de 160px */
+        min-height: 180px;
     }
 }
 
-@media (min-width: 401px) and (max-width: 639px) {
-    .chart-area {
-        min-height: 72px; /* REDUZIDO 60% de 180px */
-    }
-}
-
-@media (min-width: 640px) and (max-width: 767px) {
-    .chart-area {
-        min-height: 80px; /* REDUZIDO 60% de 200px */
-    }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
-    .chart-area {
-        min-height: 88px; /* REDUZIDO 60% de 220px */
-    }
-}
-
-@media (min-width: 1024px) {
-    .chart-area {
-        min-height: 96px; /* REDUZIDO 60% de 240px */
-    }
-}
-
-/* AJUSTES ESPECÍFICOS PARA GRÁFICOS DE PIZZA/DOUGHNUT - REDUZIDOS EM 60% */
-.chart-container[data-chart-type="doughnut"] .chart-area,
-.chart-container[data-chart-type="pie"] .chart-area {
-    min-height: 80px; /* REDUZIDO 60% de 200px */
-}
-
-@media (min-width: 1024px) {
-    .chart-container[data-chart-type="doughnut"] .chart-area,
-    .chart-container[data-chart-type="pie"] .chart-area {
-        min-height: 104px; /* REDUZIDO 60% de 260px */
-    }
-}
-
+/* Tabela Responsiva */
 .table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 8px;
     width: 100%;
     margin-top: 1rem;
+    border: 1px solid var(--border-color);
 }
 
 table {
     border-collapse: collapse;
     width: 100%;
     min-width: 600px;
-    font-size: 0.8125rem;
+    font-size: clamp(0.75rem, 2vw, 0.9rem);
 }
 
-@media (min-width: 768px) {
-    table {
-        min-width: 700px;
-        font-size: 0.875rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    table {
-        min-width: 100%;
-        font-size: 0.9375rem;
-    }
-}
-
-th,
-td {
-    padding: 0.625rem 0.75rem;
+th, td {
+    padding: clamp(0.5rem, 2vw, 0.875rem);
     text-align: left;
-    border-bottom: 1px solid rgba(100, 116, 139, 0.2);
-    white-space: nowrap;
-}
-
-@media (min-width: 768px) {
-    th,
-    td {
-        padding: 0.75rem 1rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    th,
-    td {
-        padding: 0.875rem 1.5rem;
-        white-space: normal;
-    }
+    border-bottom: 1px solid var(--border-color);
 }
 
 th {
-    background: rgba(30, 41, 59, 0.6);
+    background: rgba(30, 41, 59, 0.8);
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.7rem;
+    font-size: clamp(0.65rem, 2vw, 0.75rem);
     letter-spacing: 0.5px;
-    color: #94a3b8;
+    color: var(--text-secondary);
     position: sticky;
-    top: 0;
-    z-index: 10;
+    left: 0;
+    white-space: nowrap;
 }
 
-@media (min-width: 768px) {
-    th {
-        font-size: 0.75rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    th {
-        font-size: 0.8125rem;
-    }
-}
-
+/* Status badges responsivos */
 .status-badge {
-    padding: 0.3rem 0.75rem;
+    padding: clamp(0.25rem, 1vw, 0.4rem) clamp(0.5rem, 2vw, 0.875rem);
     border-radius: 9999px;
-    font-size: 0.7rem;
+    font-size: clamp(0.65rem, 2vw, 0.75rem);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     display: inline-block;
     white-space: nowrap;
-}
-
-@media (min-width: 640px) {
-    .status-badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.875rem;
-    }
 }
 
 .status-pending {
@@ -435,61 +337,60 @@ th {
     color: #007bff;
 }
 
+/* Footer */
 .footer {
     text-align: center;
     margin-top: 2rem;
     padding: 1rem 0;
-    color: #94a3b8;
-    font-size: 0.875rem;
-    border-top: 1px solid rgba(100, 116, 139, 0.2);
+    color: var(--text-secondary);
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
+    border-top: 1px solid var(--border-color);
 }
 
-/* MENSAGEM DE "SEM DADOS" */
+/* Estados de loading e erro */
 .chart-no-data {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #94a3b8;
+    color: var(--text-secondary);
     text-align: center;
     padding: 2rem;
 }
 
 .chart-no-data i {
-    font-size: 3rem;
+    font-size: clamp(2rem, 6vw, 3rem);
     margin-bottom: 1rem;
     opacity: 0.5;
 }
 
-/* ANIMAÇÃO DE CARREGAMENTO */
 .loading-spinner {
     text-align: center;
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 3vw, 1.2rem);
 }
 
 .loading-spinner i {
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
     margin-bottom: 1rem;
 }
 
-/* MENSAGENS DE ERRO */
 .error-message {
     position: fixed;
     top: 1rem;
     right: 1rem;
     z-index: 1001;
-    max-width: 300px;
+    max-width: min(90vw, 300px);
 }
 
-/* Custom scrollbar */
+/* Scrollbar customizada */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(30, 41, 59, 0.5);
+    background: var(--card-bg);
     border-radius: 4px;
 }
 
@@ -500,4 +401,20 @@ th {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 150, 255, 0.7);
+}
+
+/* Melhorias para telas muito pequenas */
+@media (max-width: 360px) {
+    body {
+        padding: 0.25rem;
+    }
+    
+    .stat-card {
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+    
+    .chart-container {
+        padding: 0.75rem;
+    }
 }
