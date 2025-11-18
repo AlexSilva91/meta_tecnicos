@@ -15,30 +15,57 @@ class DashboardService:
         return len(Expert.list_active(limit=10000))
 
     @staticmethod
-    def get_services_by_expert() -> dict:
-        """Retorna total de serviços por técnico no mês atual."""
+    def get_services_by_expert(month: int = None, year: int = None) -> dict:
+        """Retorna total de serviços por técnico no mês/ano especificado com detalhes por categoria"""
+        if month is None:
+            month = datetime.now().month
+        if year is None:
+            year = datetime.now().year
+            
+        all_orders = ServiceOrder.list(limit=10000)
+        
         data = defaultdict(int)
-        now = datetime.now()
-        mes_atual = now.month
-        ano_atual = now.year
-
-        experts = Expert.list_active(limit=10000)
-        for expert in experts:
-            # Técnico responsável (somente OS do mês atual)
-            for order in expert.responsible_orders:
-                if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
-                    data[expert.nome] += 1
-
-            # Técnico auxiliar (somente OS do mês atual)
-            for order in expert.assistant_orders:
-                if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
-                    data[expert.nome] += 1
-
+        detailed_data = defaultdict(lambda: defaultdict(int))
+        
+        # Filtra ordens do mês/ano especificado
+        month_orders = [
+            order for order in all_orders 
+            if (order.os_data_agendamento.month == month and 
+                order.os_data_agendamento.year == year)
+        ]
+        
+        for order in month_orders:
+            # Técnico responsável
+            main_expert = Expert.get_by_id(order.os_tecnico_responsavel)
+            if main_expert:
+                data[main_expert.nome] += 1
+                
+                # Contar por categoria
+                category = TypeService.get_by_id(order.type_service_id)
+                category_name = category.name if category else 'Desconhecida'
+                detailed_data[main_expert.nome][category_name] += 1
+            
+            # Técnicos auxiliares
+            for assistant in order.os_tecnicos_auxiliares:
+                data[assistant.nome] += 1
+                category = TypeService.get_by_id(order.type_service_id)
+                category_name = category.name if category else 'Desconhecida'
+                detailed_data[assistant.nome][category_name] += 1
+        
+        # Converter detailed_data para formato serializável
+        detailed_data_serializable = {}
+        for expert_name, categories in detailed_data.items():
+            detailed_data_serializable[expert_name] = {
+                'categories': dict(categories),
+                'total': data[expert_name]
+            }
+        
         return {
             'labels': list(data.keys()),
-            'data': list(data.values())
+            'data': list(data.values()),
+            'detailed_data': detailed_data_serializable
         }
-
+        
     @staticmethod
     def get_services_with_assist() -> dict:
         """Retorna total de ordens com e sem auxílio no mês atual."""
@@ -194,10 +221,10 @@ class DashboardService:
             'labels': ['Sem Auxílio', 'Com Auxílio'],
             'data': [without_assist, with_assist]
         }
-
+        
     @staticmethod
     def get_assistance_network(month: int = None, year: int = None) -> dict:
-        """Retorna dados sobre quem ajudou quem"""
+        """Retorna dados detalhados sobre quem ajudou quem incluindo categorias"""
         if month is None:
             month = datetime.now().month
         if year is None:
@@ -206,29 +233,111 @@ class DashboardService:
         experts = Expert.list_active(limit=10000)
         expert_names = [expert.nome for expert in experts]
         
+        # Estruturas para armazenar dados
         helped_data = []
         received_help_data = []
+        detailed_data = []
         
         for expert in experts:
-            helped_count = 0
-            received_count = 0
+            # Contador de ajuda recebida (como responsável)
+            help_received_count = 0
+            help_received_details = []
             
-            # Quantos serviços este técnico ajudou (como auxiliar, não como responsável)
-            for order in expert.assistant_orders:
-                if (order.os_data_agendamento.month == month and 
-                    order.os_data_agendamento.year == year and
-                    order.os_tecnico_responsavel != expert.id):
-                    helped_count += 1
-            
-            # Quantos serviços este técnico recebeu ajuda (como responsável)
+            # Serviços onde este técnico foi o responsável e recebeu ajuda
             for order in expert.responsible_orders:
                 if (order.os_data_agendamento.month == month and 
                     order.os_data_agendamento.year == year and
                     order.os_tecnicos_auxiliares):
-                    received_count += 1
+                    
+                    help_received_count += 1
+                    
+                    # Coletar nomes dos auxiliares
+                    assistants = []
+                    for assistant in order.os_tecnicos_auxiliares:
+                        if assistant.nome != expert.nome:
+                            assistants.append(assistant.nome)
+                    
+                    category = TypeService.get_by_id(order.type_service_id)
+                    category_name = category.name if category else 'Desconhecida'
+                    
+                    help_received_details.append({
+                        'assistants': assistants,
+                        'date': order.os_data_agendamento.strftime('%Y-%m-%d'),
+                        'category': category_name,
+                        'service_id': order.id
+                    })
             
+            # Contador de ajuda prestada (como auxiliar)
+            helped_count = 0
+            helped_details = []
+            
+            for order in expert.assistant_orders:
+                if (order.os_data_agendamento.month == month and 
+                    order.os_data_agendamento.year == year):
+                    
+                    main_expert = Expert.get_by_id(order.os_tecnico_responsavel)
+                    if main_expert and main_expert.nome != expert.nome:
+                        helped_count += 1
+                        
+                        category = TypeService.get_by_id(order.type_service_id)
+                        category_name = category.name if category else 'Desconhecida'
+                        
+                        helped_details.append({
+                            'main_expert': main_expert.nome,
+                            'date': order.os_data_agendamento.strftime('%Y-%m-%d'),
+                            'category': category_name,
+                            'service_id': order.id
+                        })
+            
+            # Agrupar dados de ajuda recebida por técnico auxiliar
+            assistant_summary = defaultdict(int)
+            assistant_full_details = defaultdict(list)
+            
+            for help_data in help_received_details:
+                for assistant in help_data['assistants']:
+                    assistant_summary[assistant] += 1
+                    assistant_full_details[assistant].append({
+                        'date': help_data['date'],
+                        'category': help_data['category'],
+                        'service_id': help_data['service_id']
+                    })
+            
+            # Agrupar dados de ajuda prestada por técnico principal
+            helped_summary = defaultdict(int)
+            helped_full_details = defaultdict(list)
+            
+            for help_data in helped_details:
+                helped_summary[help_data['main_expert']] += 1
+                helped_full_details[help_data['main_expert']].append({
+                    'date': help_data['date'],
+                    'category': help_data['category'],
+                    'service_id': help_data['service_id']
+                })
+            
+            # Preparar dados detalhados para tooltips
+            detailed_data.append({
+                'expert': expert.nome,
+                'helped_others': [
+                    {
+                        'main_expert': main_expert,
+                        'count': count,
+                        'details': helped_full_details[main_expert]
+                    }
+                    for main_expert, count in helped_summary.items()
+                ],
+                'helped_by_others': [
+                    {
+                        'assistant_name': assistant,
+                        'count': count,
+                        'details': assistant_full_details[assistant]
+                    }
+                    for assistant, count in assistant_summary.items()
+                ]
+            })
+            
+            # Dados para o gráfico
             helped_data.append(helped_count)
-            received_help_data.append(received_count)
+            received_help_data.append(help_received_count)
         
         return {
             'labels': expert_names,
@@ -243,7 +352,8 @@ class DashboardService:
                     'data': received_help_data,
                     'backgroundColor': 'rgba(0, 150, 255, 0.7)'
                 }
-            ]
+            ],
+            'detailed_data': detailed_data
         }
 
     @staticmethod

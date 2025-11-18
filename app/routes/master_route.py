@@ -34,7 +34,7 @@ def get_dashboard_data():
         
         # Obter dados completos do dashboard
         dashboard_data = DashboardService.get_complete_dashboard_data(month, year)
-        
+        print(dashboard_data)
         return jsonify({
             'success': True,
             'data': dashboard_data,
@@ -46,6 +46,7 @@ def get_dashboard_data():
         })
         
     except Exception as e:
+        print(e)
         return jsonify({'error': f'Erro ao carregar dados: {str(e)}'}), 500
 
 @master_bp.route('/api/metrics')

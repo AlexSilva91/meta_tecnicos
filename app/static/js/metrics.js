@@ -424,6 +424,47 @@ function updateCharts(data) {
                             ...getResponsiveChartOptions('bar').plugins.legend.labels,
                             boxWidth: window.innerWidth < 480 ? 8 : (window.innerWidth < 768 ? 10 : 12)
                         }
+                    },
+                    tooltip: {
+                        ...getResponsiveChartOptions('bar').plugins.tooltip,
+                        callbacks: {
+                            afterBody: function(context) {
+                                if (data.assistanceNetwork.detailed_data && 
+                                    data.assistanceNetwork.detailed_data[context[0].dataIndex]) {
+                                    
+                                    const expertData = data.assistanceNetwork.detailed_data[context[0].dataIndex];
+                                    const tooltips = [];
+                                    
+                                    // Informações sobre quem este técnico ajudou
+                                    if (expertData.helped_others && expertData.helped_others.length > 0) {
+                                        tooltips.push('\n👥 Ajudou:');
+                                        expertData.helped_others.forEach(help => {
+                                            const categories = [...new Set(help.details.map(d => d.category))];
+                                            tooltips.push(`  • ${help.main_expert}: ${help.count}x (${categories.slice(0, 2).join(', ')}${categories.length > 2 ? '...' : ''})`);
+                                        });
+                                    }
+                                    
+                                    // Informações sobre quem ajudou este técnico
+                                    if (expertData.helped_by_others && expertData.helped_by_others.length > 0) {
+                                        tooltips.push('\n🤝 Recebeu ajuda:');
+                                        expertData.helped_by_others.forEach(helper => {
+                                            const categories = [...new Set(helper.details.map(d => d.category))];
+                                            tooltips.push(`  • ${helper.assistant_name}: ${helper.count}x (${categories.slice(0, 2).join(', ')}${categories.length > 2 ? '...' : ''})`);
+                                        });
+                                    }
+                                    
+                                    return tooltips.length > 0 ? tooltips : ['\nSem colaborações registradas'];
+                                }
+                                return '';
+                            }
+                        }
+                    }
+                },
+                onClick: (e, elements) => {
+                    if (elements.length > 0 && data.assistanceNetwork.detailed_data) {
+                        const index = elements[0].index;
+                        const expertData = data.assistanceNetwork.detailed_data[index];
+                        showExpertDetails(expertData);
                     }
                 }
             }
@@ -753,4 +794,149 @@ if (typeof bootstrap !== 'undefined') {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+}
+function showExpertDetails(expertData) {
+    const width = window.innerWidth;
+    const isMobile = width < 768;
+    
+    let detailsHTML = `
+        <div class="expert-details" style="padding: ${isMobile ? '0.5rem' : '1rem'}; max-height: 70vh; overflow-y: auto;">
+            <h3 style="color: #0ea5e9; margin-bottom: 1rem; font-size: ${isMobile ? '1.1rem' : '1.3rem'};">Detalhes: ${expertData.expert}</h3>
+    `;
+    
+    // Seções que ajudou
+    if (expertData.helped_others && expertData.helped_others.length > 0) {
+        detailsHTML += `
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: #22c55e; margin-bottom: 0.5rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">👥 Ajudou os técnicos:</h4>
+                <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+        `;
+        
+        expertData.helped_others.forEach(help => {
+            detailsHTML += `<div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border-radius: 4px;">
+                <strong>${help.main_expert}</strong> (${help.count} vez${help.count > 1 ? 'es' : ''}):
+            `;
+            
+            help.details.forEach(detail => {
+                detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
+                    📅 ${detail.date} - 🏷️ ${detail.category}
+                </div>`;
+            });
+            
+            detailsHTML += `</div>`;
+        });
+        
+        detailsHTML += `</div></div>`;
+    } else {
+        detailsHTML += `
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: #22c55e; margin-bottom: 0.5rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">👥 Ajudou os técnicos:</h4>
+                <div style="color: #94a3b8; font-style: italic; font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+                    Não ajudou outros técnicos neste período
+                </div>
+            </div>
+        `;
+    }
+    
+    // Seções que ajudaram este técnico
+    if (expertData.helped_by_others && expertData.helped_by_others.length > 0) {
+        detailsHTML += `
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: #0ea5e9; margin-bottom: 0.5rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">🤝 Recebeu ajuda de:</h4>
+                <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+        `;
+        
+        expertData.helped_by_others.forEach(helper => {
+            detailsHTML += `<div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(14, 165, 233, 0.1); border-radius: 4px;">
+                <strong>${helper.assistant_name}</strong> (${helper.count} vez${helper.count > 1 ? 'es' : ''}):
+            `;
+            
+            helper.details.forEach(detail => {
+                detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
+                    📅 ${detail.date} - 🏷️ ${detail.category}
+                </div>`;
+            });
+            
+            detailsHTML += `</div>`;
+        });
+        
+        detailsHTML += `</div></div>`;
+    } else {
+        detailsHTML += `
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: #0ea5e9; margin-bottom: 0.5rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">🤝 Recebeu ajuda de:</h4>
+                <div style="color: #94a3b8; font-style: italic; font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+                    Não recebeu ajuda de outros técnicos neste período
+                </div>
+            </div>
+        `;
+    }
+    
+    detailsHTML += `</div>`;
+    
+    // Para mobile, mostrar versão simplificada
+    if (isMobile) {
+        let mobileMessage = `Detalhes de ${expertData.expert}\n\n`;
+        
+        if (expertData.helped_others && expertData.helped_others.length > 0) {
+            mobileMessage += `👥 Ajudou:\n`;
+            expertData.helped_others.forEach(help => {
+                const categories = [...new Set(help.details.map(d => d.category))];
+                mobileMessage += `• ${help.main_expert}: ${help.count}x (${categories.join(', ')})\n`;
+            });
+        } else {
+            mobileMessage += `👥 Não ajudou outros técnicos\n`;
+        }
+        
+        mobileMessage += `\n`;
+        
+        if (expertData.helped_by_others && expertData.helped_by_others.length > 0) {
+            mobileMessage += `🤝 Recebeu ajuda:\n`;
+            expertData.helped_by_others.forEach(helper => {
+                const categories = [...new Set(helper.details.map(d => d.category))];
+                mobileMessage += `• ${helper.assistant_name}: ${helper.count}x (${categories.join(', ')})\n`;
+            });
+        } else {
+            mobileMessage += `🤝 Não recebeu ajuda\n`;
+        }
+        
+        alert(mobileMessage);
+    } else {
+        // Para desktop, criar modal customizado
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1rem;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: #1e293b; border-radius: 8px; width: 100%; max-width: 700px; max-height: 80vh; overflow: hidden;">
+                ${detailsHTML}
+                <div style="padding: 1rem; text-align: center; border-top: 1px solid #334155;">
+                    <button onclick="this.closest('.expert-modal').remove()" style="background: #0ea5e9; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('expert-modal');
+        document.body.appendChild(modal);
+        
+        // Fechar modal ao clicar fora
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
 }
