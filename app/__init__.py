@@ -1,9 +1,12 @@
 from flask import Flask
+
+from app.tasks.daily_os import iniciar_scheduler
 from .database import db
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
 import os
+import logging
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -27,12 +30,10 @@ def create_app(config_object=None):
     DB_PORT = os.getenv('DB_PORT')
     DB_NAME = os.getenv('DB_NAME')
 
-    # Monta a URI do PostgreSQL
     app.config['SQLALCHEMY_DATABASE_URI'] = (
         f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
 
-    # Garante que o schema public será usado
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         "connect_args": {"options": "-c search_path=public"}
     }
@@ -41,12 +42,16 @@ def create_app(config_object=None):
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave-padrao-segura')
     app.config['DEBUG'] = os.getenv('DEBUG', 'False') == 'True'
 
-    # Inicializa extensões
+    
     db.init_app(app)
     Migrate(app, db)
     login_manager.init_app(app)
+    
+    from .logging_config import setup_logging
 
-    # Importa serviços e blueprints
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        setup_logging(app)
+        
     from .service.user_service import UserService
     from .routes.login import login_bp
     from .routes.admin_route import admin_bp
@@ -56,10 +61,10 @@ def create_app(config_object=None):
     app.register_blueprint(login_bp, url_prefix='/login')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    # --- Função que carrega o usuário logado ---
     @login_manager.user_loader
     def load_user(user_id):
         """Carrega o usuário pelo ID armazenado na sessão."""
         return UserService.get_user_by_id(user_id)
 
+    logging.info('Iniciando monitoramento...')
     return app

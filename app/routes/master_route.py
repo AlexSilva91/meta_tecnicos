@@ -1,14 +1,16 @@
 from flask import render_template, Blueprint, request, jsonify
 from datetime import datetime
-
 from app.models.service_order import ServiceOrder
 from app.service.dashboard_service import DashboardService
+import logging
+logger = logging.getLogger(__name__)
 
 master_bp = Blueprint('master', __name__)
 
 @master_bp.route('/')
 def main_dashboard():
     """Rota principal do dashboard - renderiza o template HTML"""
+    logger.info('Template renderizado')
     return render_template('user/index.html')
 
 @master_bp.route('/api/data')
@@ -27,14 +29,15 @@ def get_dashboard_data():
         
         # Validar valores
         if not (1 <= month <= 12):
+            logger.error('Mês inválido. Use valores de 1 a 12')
             return jsonify({'error': 'Mês inválido. Use valores de 1 a 12.'}), 400
         
         if year < 2000 or year > datetime.now().year + 1:
+            logger.error('Ano inválido')
             return jsonify({'error': 'Ano inválido.'}), 400
         
-        # Obter dados completos do dashboard
         dashboard_data = DashboardService.get_complete_dashboard_data(month, year)
-        print(dashboard_data)
+        
         return jsonify({
             'success': True,
             'data': dashboard_data,
@@ -46,7 +49,7 @@ def get_dashboard_data():
         })
         
     except Exception as e:
-        print(e)
+        logger.error(f'Erro ao carregar dados: {e}')
         return jsonify({'error': f'Erro ao carregar dados: {str(e)}'}), 500
 
 @master_bp.route('/api/metrics')
@@ -79,6 +82,7 @@ def get_metrics():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar métricas: {e}')
         return jsonify({'error': f'Erro ao carregar métricas: {str(e)}'}), 500
 
 @master_bp.route('/api/charts/services-by-expert')
@@ -106,6 +110,7 @@ def get_services_by_expert_chart():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar dados do gráfico: {e}')
         return jsonify({'error': f'Erro ao carregar dados do gráfico: {str(e)}'}), 500
 
 @master_bp.route('/api/charts/services-by-category')
@@ -133,6 +138,7 @@ def get_services_by_category_chart():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar dados do gráfico: {e}')
         return jsonify({'error': f'Erro ao carregar dados do gráfico: {str(e)}'}), 500
 
 @master_bp.route('/api/charts/services-with-assist')
@@ -160,6 +166,7 @@ def get_services_with_assist_chart():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar dados do gráfico: {e}')
         return jsonify({'error': f'Erro ao carregar dados do gráfico: {str(e)}'}), 500
 
 @master_bp.route('/api/charts/assistance-network')
@@ -187,6 +194,7 @@ def get_assistance_network_chart():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar dados do gráfico: {e}')
         return jsonify({'error': f'Erro ao carregar dados do gráfico: {str(e)}'}), 500
 
 @master_bp.route('/api/charts/assistance-by-service-type')
@@ -214,6 +222,7 @@ def get_assistance_by_service_type_chart():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar dados do gráfico: {e}')
         return jsonify({'error': f'Erro ao carregar dados do gráfico: {str(e)}'}), 500
 
 @master_bp.route('/api/tables/repeated-services')
@@ -241,6 +250,7 @@ def get_repeated_services_table():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar dados da tabela: {e}')
         return jsonify({'error': f'Erro ao carregar dados da tabela: {str(e)}'}), 500
 
 @master_bp.route('/api/available-months')
@@ -249,12 +259,10 @@ def get_available_months():
     try:
         all_orders = ServiceOrder.list(limit=10000)
         
-        # Extrair meses e anos únicos
         date_combinations = set()
         for order in all_orders:
             date_combinations.add((order.os_data_agendamento.year, order.os_data_agendamento.month))
-        
-        # Ordenar por ano e mês
+
         sorted_dates = sorted(date_combinations, key=lambda x: (x[0], x[1]), reverse=True)
         
         available_months = [
@@ -273,4 +281,5 @@ def get_available_months():
         })
         
     except Exception as e:
+        logger.error(f'Erro ao carregar meses disponíveis: {e}')
         return jsonify({'error': f'Erro ao carregar meses disponíveis: {str(e)}'}), 500

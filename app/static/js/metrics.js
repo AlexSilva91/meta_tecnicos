@@ -1,6 +1,9 @@
 let currentMonth, currentYear;
 let charts = {};
 let resizeTimeout;
+let currentPage = 1;
+const itemsPerPage = 30;
+let currentRepeatedServicesData = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     const now = new Date();
@@ -80,7 +83,6 @@ function adjustLayoutForScreenSize() {
     makeTableResponsive();
 }
 
-
 async function loadAvailableYears(currentYear) {
     try {
         const response = await fetch('/api/available-months');
@@ -112,6 +114,7 @@ async function loadAvailableYears(currentYear) {
 
 // Atualizar dashboard quando os filtros mudarem
 function updateDashboard() {
+    currentPage = 1; // Reset para primeira página ao mudar filtros
     const month = parseInt(document.getElementById('monthFilter').value) + 1;
     const year = parseInt(document.getElementById('yearFilter').value);
     loadDashboardData(month, year);
@@ -128,7 +131,10 @@ async function loadDashboardData(month, year) {
             const dashboardData = result.data;
             updateMetrics(dashboardData);
             updateCharts(dashboardData);
-            updateRepeatedServicesTable(dashboardData.repeatedServicesList);
+            
+            currentRepeatedServicesData = sortRepeatedServicesData(dashboardData.repeatedServicesList || []);
+            updateRepeatedServicesTable(currentRepeatedServicesData);
+            
             updateFooter(result.filters);
         } else {
             showError('Erro ao carregar dados do dashboard');
@@ -140,13 +146,41 @@ async function loadDashboardData(month, year) {
     }
 }
 
+// Função para ordenar os dados de serviços repetidos
+function sortRepeatedServicesData(data) {
+    if (!data || !Array.isArray(data)) return [];
+    
+    return [...data].sort((a, b) => {
+        // Primeiro ordena por data do segundo serviço (mais recente primeiro)
+        const dateA = new Date(a.secondServiceDate || a.firstServiceDate || '2000-01-01');
+        const dateB = new Date(b.secondServiceDate || b.firstServiceDate || '2000-01-01');
+        
+        // Se as datas são diferentes, ordena por data (mais recente primeiro)
+        if (dateB.getTime() !== dateA.getTime()) {
+            return dateB.getTime() - dateA.getTime();
+        }
+        
+        // Se as datas são iguais, ordena alfabeticamente por contrato
+        const contractA = (a.contract || '').toLowerCase();
+        const contractB = (b.contract || '').toLowerCase();
+        
+        if (contractA !== contractB) {
+            return contractA.localeCompare(contractB);
+        }
+        
+        // Se os contratos são iguais, ordena por categoria
+        const categoryA = (a.category || '').toLowerCase();
+        const categoryB = (b.category || '').toLowerCase();
+        return categoryA.localeCompare(categoryB);
+    });
+}
+
 function updateMetrics(data) {
     document.getElementById('totalServices').textContent = data.totalServices || 0;
     document.getElementById('totalExperts').textContent = data.totalExperts || 0;
     document.getElementById('servicesWithAssist').textContent = data.servicesWithAssist || 0;
     document.getElementById('repeatedServices').textContent = data.repeatedServices || 0;
 }
-
 
 function getResponsiveChartOptions(chartType) {
     const width = window.innerWidth;
@@ -258,15 +292,18 @@ function getResponsiveChartOptions(chartType) {
     return baseOptions;
 }
 
-
 function updateCharts(data) {
     destroyExistingCharts();
     removeNoDataMessages();
     adjustLayoutForScreenSize();
+        
     if (data.servicesByExpert && data.servicesByExpert.labels && data.servicesByExpert.labels.length > 0) {
         const servicesByExpertCtx = document.getElementById('servicesByExpertChart').getContext('2d');
         
-        const labels = data.servicesByExpert.labels.map(label => {
+        // Ordenar os dados em ordem alfabética
+        const sortedData = sortServicesByExpertData(data.servicesByExpert);
+        
+        const labels = sortedData.labels.map(label => {
             const width = window.innerWidth;
             if (width < 480 && label.length > 8) {
                 return label.substring(0, 6) + '...';
@@ -277,8 +314,8 @@ function updateCharts(data) {
         });
         
         const chartData = {
-            labels: data.servicesByExpert.labels,
-            data: data.servicesByExpert.data,
+            labels: sortedData.labels,
+            data: sortedData.data,
             detailedData: data.servicesByExpertDetailed
         };
         
@@ -288,7 +325,7 @@ function updateCharts(data) {
                 labels: labels,
                 datasets: [{
                     label: 'Serviços Realizados',
-                    data: data.servicesByExpert.data,
+                    data: sortedData.data,
                     backgroundColor: 'rgba(0, 150, 255, 0.7)',
                     borderColor: 'rgba(0, 150, 255, 1)',
                     borderWidth: 1,
@@ -355,17 +392,18 @@ function updateCharts(data) {
     } else {
         showNoDataMessage('servicesByExpertChart', 'Nenhum dado disponível para serviços por técnico');
     }
-    
-    // Gráfico de serviços por categoria
+
     if (data.servicesByCategory && data.servicesByCategory.labels && data.servicesByCategory.labels.length > 0) {
         const servicesByCategoryCtx = document.getElementById('servicesByCategoryChart').getContext('2d');
+        
+        const sortedData = sortServicesByExpertData(data.servicesByCategory);
         
         charts.servicesByCategory = new Chart(servicesByCategoryCtx, {
             type: 'doughnut',
             data: {
-                labels: data.servicesByCategory.labels,
+                labels: sortedData.labels,
                 datasets: [{
-                    data: data.servicesByCategory.data,
+                    data: sortedData.data,
                     backgroundColor: [
                         'rgba(0, 150, 255, 0.7)',
                         'rgba(34, 197, 94, 0.7)',
@@ -374,7 +412,11 @@ function updateCharts(data) {
                         'rgba(239, 68, 68, 0.7)',
                         'rgba(255, 193, 7, 0.7)',
                         'rgba(13, 202, 240, 0.7)',
-                        'rgba(102, 16, 242, 0.7)'
+                        'rgba(102, 16, 242, 0.7)',
+                        'rgba(156, 163, 175, 0.7)',
+                        'rgba(99, 102, 241, 0.7)',
+                        'rgba(190, 24, 93, 0.7)',
+                        'rgba(5, 150, 105, 0.7)'
                     ],
                     borderColor: [
                         'rgba(0, 150, 255, 1)',
@@ -384,7 +426,11 @@ function updateCharts(data) {
                         'rgba(239, 68, 68, 1)',
                         'rgba(255, 193, 7, 1)',
                         'rgba(13, 202, 240, 1)',
-                        'rgba(102, 16, 242, 1)'
+                        'rgba(102, 16, 242, 1)',
+                        'rgba(156, 163, 175, 1)',
+                        'rgba(99, 102, 241, 1)',
+                        'rgba(190, 24, 93, 1)',
+                        'rgba(5, 150, 105, 1)'
                     ],
                     borderWidth: 1,
                     hoverOffset: window.innerWidth < 480 ? 4 : (window.innerWidth < 768 ? 6 : 8)
@@ -462,7 +508,10 @@ function updateCharts(data) {
     if (data.assistanceNetwork && data.assistanceNetwork.labels && data.assistanceNetwork.labels.length > 0) {
         const assistanceNetworkCtx = document.getElementById('assistanceNetworkChart').getContext('2d');
         
-        const datasets = data.assistanceNetwork.datasets.map(dataset => ({
+        // Ordenar os dados em ordem alfabética
+        const sortedData = sortAssistanceNetworkData(data.assistanceNetwork);
+        
+        const datasets = sortedData.datasets.map(dataset => ({
             ...dataset,
             borderRadius: window.innerWidth < 480 ? 1 : (window.innerWidth < 768 ? 2 : 4),
             borderSkipped: false,
@@ -471,7 +520,7 @@ function updateCharts(data) {
         charts.assistanceNetwork = new Chart(assistanceNetworkCtx, {
             type: 'bar',
             data: {
-                labels: data.assistanceNetwork.labels,
+                labels: sortedData.labels,
                 datasets: datasets
             },
             options: {
@@ -489,10 +538,10 @@ function updateCharts(data) {
                         ...getResponsiveChartOptions('bar').plugins.tooltip,
                         callbacks: {
                             afterBody: function(context) {
-                                if (data.assistanceNetwork.detailed_data && 
-                                    data.assistanceNetwork.detailed_data[context[0].dataIndex]) {
+                                if (sortedData.detailed_data && 
+                                    sortedData.detailed_data[context[0].dataIndex]) {
                                     
-                                    const expertData = data.assistanceNetwork.detailed_data[context[0].dataIndex];
+                                    const expertData = sortedData.detailed_data[context[0].dataIndex];
                                     const tooltips = [];
                                     
                                     // Informações sobre quem este técnico ajudou
@@ -521,9 +570,9 @@ function updateCharts(data) {
                     }
                 },
                 onClick: (e, elements) => {
-                    if (elements.length > 0 && data.assistanceNetwork.detailed_data) {
+                    if (elements.length > 0 && sortedData.detailed_data) {
                         const index = elements[0].index;
-                        const expertData = data.assistanceNetwork.detailed_data[index];
+                        const expertData = sortedData.detailed_data[index];
                         showExpertDetails(expertData);
                     }
                 }
@@ -547,19 +596,30 @@ function formatDateBR(dateString) {
     return `${day}/${month}/${year}`;
 }
 
-
-// Atualizar tabela de serviços repetidos
+// Atualizar tabela de serviços repetidos com paginação
 function updateRepeatedServicesTable(data) {
     const tableBody = document.querySelector('#repeatedServicesTable tbody');
     tableBody.innerHTML = '';
     
     if (data && data.length > 0) {
-        // Limitar a exibição para performance baseado no tamanho da tela
-        const width = window.innerWidth;
-        const displayLimit = width < 480 ? 10 : (width < 768 ? 15 : (width < 1024 ? 25 : 50));
-        const displayData = data.slice(0, displayLimit);
+        // Calcular dados para a página atual
+        const totalItems = data.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
         
-        displayData.forEach(item => {
+        // Garantir que currentPage está dentro dos limites
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+        
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+        const pageData = data.slice(startIndex, endIndex);
+        
+        // Preencher tabela com dados da página atual
+        pageData.forEach(item => {
             const row = document.createElement('tr');
             
             // Formatar dados para diferentes tamanhos de tela
@@ -596,18 +656,9 @@ function updateRepeatedServicesTable(data) {
             `;
             tableBody.appendChild(row);
         });
-
-        // Adicionar mensagem se houver mais registros
-        if (data.length > displayLimit) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td colspan="6" style="text-align: center; color: #94a3b8; padding: 0.75rem; background: rgba(30, 41, 59, 0.5); font-size: ${width < 480 ? '0.7rem' : '0.8rem'};">
-                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                    Mostrando ${displayLimit} de ${data.length} serviços repetidos
-                </td>
-            `;
-            tableBody.appendChild(row);
-        }
+        
+        // Atualizar controles de paginação
+        updatePaginationControls(totalItems, totalPages);
         
         // Adicionar classes responsivas à tabela
         makeTableResponsive();
@@ -620,6 +671,143 @@ function updateRepeatedServicesTable(data) {
             </td>
         `;
         tableBody.appendChild(row);
+        
+        // Remover controles de paginação se não houver dados
+        removePaginationControls();
+    }
+}
+
+// Atualizar controles de paginação
+function updatePaginationControls(totalItems, totalPages) {
+    // Remover controles de paginação existentes
+    removePaginationControls();
+    
+    if (totalPages <= 1) return;
+    
+    const tableContainer = document.querySelector('.table-container');
+    const width = window.innerWidth;
+    const isMobile = width < 768;
+    
+    const paginationDiv = document.createElement('div');
+    paginationDiv.className = 'pagination-controls';
+    paginationDiv.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 6px;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: ${isMobile ? '0.8rem' : '0.9rem'};
+    `;
+    
+    // Informações da página
+    const startItem = ((currentPage - 1) * itemsPerPage) + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = `color: #94a3b8;`;
+    infoDiv.innerHTML = `Mostrando ${startItem}-${endItem} de ${totalItems} itens`;
+    
+    // Controles de navegação
+    const navDiv = document.createElement('div');
+    navDiv.style.cssText = `display: flex; align-items: center; gap: 0.5rem;`;
+    
+    // Botão anterior
+    const prevButton = document.createElement('button');
+    prevButton.innerHTML = `<i class="fas fa-chevron-left"></i>`;
+    prevButton.disabled = currentPage === 1;
+    prevButton.onclick = () => changePage(currentPage - 1);
+    prevButton.style.cssText = `
+        background: ${currentPage === 1 ? '#475569' : '#0ea5e9'};
+        color: white;
+        border: none;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};
+        opacity: ${currentPage === 1 ? '0.5' : '1'};
+        font-size: ${isMobile ? '0.7rem' : '0.8rem'};
+    `;
+    
+    // Indicador de página
+    const pageIndicator = document.createElement('span');
+    pageIndicator.style.cssText = `color: #e2e8f0; font-weight: bold; min-width: ${isMobile ? '60px' : '80px'}; text-align: center;`;
+    pageIndicator.textContent = `${currentPage} / ${totalPages}`;
+    
+    // Botão próximo
+    const nextButton = document.createElement('button');
+    nextButton.innerHTML = `<i class="fas fa-chevron-right"></i>`;
+    nextButton.disabled = currentPage === totalPages;
+    nextButton.onclick = () => changePage(currentPage + 1);
+    nextButton.style.cssText = `
+        background: ${currentPage === totalPages ? '#475569' : '#0ea5e9'};
+        color: white;
+        border: none;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};
+        opacity: ${currentPage === totalPages ? '0.5' : '1'};
+        font-size: ${isMobile ? '0.7rem' : '0.8rem'};
+    `;
+    
+    // Seletor de página para desktop
+    if (!isMobile && totalPages > 1) {
+        const pageSelect = document.createElement('select');
+        pageSelect.style.cssText = `
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 0.4rem;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        `;
+        pageSelect.onchange = (e) => changePage(parseInt(e.target.value));
+        
+        for (let i = 1; i <= totalPages; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Página ${i}`;
+            option.selected = i === currentPage;
+            pageSelect.appendChild(option);
+        }
+        
+        navDiv.appendChild(pageSelect);
+    }
+    
+    navDiv.appendChild(prevButton);
+    navDiv.appendChild(pageIndicator);
+    navDiv.appendChild(nextButton);
+    
+    paginationDiv.appendChild(infoDiv);
+    paginationDiv.appendChild(navDiv);
+    
+    tableContainer.appendChild(paginationDiv);
+}
+
+// Remover controles de paginação
+function removePaginationControls() {
+    const existingPagination = document.querySelector('.pagination-controls');
+    if (existingPagination) {
+        existingPagination.remove();
+    }
+}
+
+// Mudar de página
+function changePage(newPage) {
+    if (newPage < 1 || newPage > Math.ceil(currentRepeatedServicesData.length / itemsPerPage)) {
+        return;
+    }
+    
+    currentPage = newPage;
+    updateRepeatedServicesTable(currentRepeatedServicesData);
+    
+    // Scroll suave para o topo da tabela
+    const tableElement = document.getElementById('repeatedServicesTable');
+    if (tableElement) {
+        tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
@@ -869,6 +1057,7 @@ if (typeof bootstrap !== 'undefined') {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 }
+
 function showExpertDetails(expertData) {
     const width = window.innerWidth;
     const isMobile = width < 768;
@@ -1014,6 +1203,7 @@ function showExpertDetails(expertData) {
         });
     }
 }
+
 function showExpertServicesDetails(expertName, data) {
     if (!data.servicesByExpertDetailed || 
         !data.servicesByExpertDetailed.detailed || 
@@ -1101,4 +1291,72 @@ function showExpertServicesDetails(expertName, data) {
             }
         });
     }
+}
+
+function sortServicesByExpertData(servicesByExpertData) {
+    if (!servicesByExpertData || !servicesByExpertData.labels || !servicesByExpertData.data) {
+        return servicesByExpertData;
+    }
+    
+    const dataForSorting = servicesByExpertData.labels.map((label, index) => ({
+        label: label,
+        data: servicesByExpertData.data[index],
+        index: index
+    }));
+    
+    dataForSorting.sort((a, b) => {
+        const labelA = (a.label || '').toLowerCase();
+        const labelB = (b.label || '').toLowerCase();
+        return labelA.localeCompare(labelB);
+    });
+    
+    const sortedLabels = dataForSorting.map(item => item.label);
+    const sortedData = dataForSorting.map(item => item.data);
+    
+    return {
+        labels: sortedLabels,
+        data: sortedData
+    };
+}
+function sortAssistanceNetworkData(assistanceNetworkData) {
+    if (!assistanceNetworkData || !assistanceNetworkData.labels || !assistanceNetworkData.datasets) {
+        return assistanceNetworkData;
+    }
+    
+    // Criar array de objetos para ordenação
+    const dataForSorting = assistanceNetworkData.labels.map((label, index) => ({
+        label: label,
+        datasets: assistanceNetworkData.datasets.map(dataset => ({
+            ...dataset,
+            data: dataset.data[index]
+        })),
+        detailed_data: assistanceNetworkData.detailed_data ? assistanceNetworkData.detailed_data[index] : null,
+        index: index
+    }));
+    
+    // Ordenar em ordem alfabética pelo label (nome do técnico)
+    dataForSorting.sort((a, b) => {
+        const labelA = (a.label || '').toLowerCase();
+        const labelB = (b.label || '').toLowerCase();
+        return labelA.localeCompare(labelB);
+    });
+    
+    // Reconstruir os arrays ordenados
+    const sortedLabels = dataForSorting.map(item => item.label);
+    const sortedDetailedData = dataForSorting.map(item => item.detailed_data);
+    
+    // Reconstruir os datasets ordenados
+    const sortedDatasets = assistanceNetworkData.datasets.map((dataset, datasetIndex) => {
+        const sortedData = dataForSorting.map(item => item.datasets[datasetIndex].data);
+        return {
+            ...dataset,
+            data: sortedData
+        };
+    });
+    
+    return {
+        labels: sortedLabels,
+        datasets: sortedDatasets,
+        detailed_data: sortedDetailedData
+    };
 }
