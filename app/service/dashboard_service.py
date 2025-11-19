@@ -426,6 +426,58 @@ class DashboardService:
         return repeated_services
 
     @staticmethod
+    def get_services_by_expert_with_details(month: int = None, year: int = None) -> dict:
+        """Retorna dados detalhados de serviços por técnico incluindo categorias"""
+        if month is None:
+            month = datetime.now().month
+        if year is None:
+            year = datetime.now().year
+            
+        # Obter os dados agrupados
+        detailed_data = ServiceOrder.get_service_orders_grouped(month, year)
+        
+        # Obter nomes dos técnicos e categorias
+        experts = Expert.list_active(limit=10000)
+        categories = TypeService.list(limit=10000)
+        
+        # Criar mapeamentos
+        expert_map = {expert.id: expert.nome for expert in experts}
+        category_map = {category.id: category.name for category in categories}
+        
+        # Processar dados para o frontend
+        result = {
+            'summary': {},
+            'detailed': {}
+        }
+        
+        for expert_id, categories_data in detailed_data.items():
+            expert_name = expert_map.get(expert_id, f"Técnico {expert_id}")
+            
+            # Calcular total
+            total = sum(categories_data.values())
+            result['summary'][expert_name] = total
+            
+            # Processar dados detalhados por categoria
+            detailed_categories = []
+            for category_id, count in categories_data.items():
+                category_name = category_map.get(category_id, f"Categoria {category_id}")
+                detailed_categories.append({
+                    'name': category_name,
+                    'count': count,
+                    'percentage': round((count / total) * 100, 1) if total > 0 else 0
+                })
+            
+            # Ordenar por quantidade (maior primeiro)
+            detailed_categories.sort(key=lambda x: x['count'], reverse=True)
+            
+            result['detailed'][expert_name] = {
+                'total': total,
+                'categories': detailed_categories
+            }
+        
+        return result
+
+    @staticmethod
     def get_month_name(month: int) -> str:
         """Retorna o nome do mês baseado no número"""
         months = [
@@ -442,19 +494,19 @@ class DashboardService:
         if year is None:
             year = datetime.now().year
             
-        # CORREÇÃO: Usar DashboardService. para chamar os métodos estáticos
         services_with_assist_data = DashboardService.get_services_with_assist(month, year)
         repeated_services_list = DashboardService.get_repeated_services(month, year)
         
         return {
             'totalServices': DashboardService.get_total_services(month, year),
             'totalExperts': DashboardService.get_total_experts(),
-            'servicesWithAssist': services_with_assist_data['data'][1],  # Apenas serviços com auxílio
+            'servicesWithAssist': services_with_assist_data['data'][1], 
             'repeatedServices': len(repeated_services_list),
             'servicesByExpert': DashboardService.get_services_by_expert(month, year),
             'servicesByCategory': DashboardService.get_services_by_category(month, year),
             'servicesWithAssistChart': services_with_assist_data,
             'assistanceNetwork': DashboardService.get_assistance_network(month, year),
             'assistanceByServiceType': DashboardService.get_assistance_by_service_type(month, year),
-            'repeatedServicesList': repeated_services_list
+            'repeatedServicesList': repeated_services_list, 
+            'servicesByExpertDetailed': DashboardService.get_services_by_expert_with_details(month, year)
         }

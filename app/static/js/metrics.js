@@ -276,6 +276,12 @@ function updateCharts(data) {
             return label;
         });
         
+        const chartData = {
+            labels: data.servicesByExpert.labels,
+            data: data.servicesByExpert.data,
+            detailedData: data.servicesByExpertDetailed
+        };
+        
         charts.servicesByExpert = new Chart(servicesByExpertCtx, {
             type: 'bar',
             data: {
@@ -290,7 +296,61 @@ function updateCharts(data) {
                     borderSkipped: false,
                 }]
             },
-            options: getResponsiveChartOptions('bar')
+            options: {
+                ...getResponsiveChartOptions('bar'),
+                plugins: {
+                    ...getResponsiveChartOptions('bar').plugins,
+                    tooltip: {
+                        ...getResponsiveChartOptions('bar').plugins.tooltip,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return `Técnico: ${tooltipItems[0].label}`;
+                            },
+                            label: function(context) {
+                                return `Total de serviços: ${context.raw}`;
+                            },
+                            afterBody: function(tooltipItems) {
+                                const expertIndex = tooltipItems[0].dataIndex;
+                                const expertName = chartData.labels[expertIndex]; 
+                                
+                                if (chartData.detailedData && 
+                                    chartData.detailedData.detailed && 
+                                    chartData.detailedData.detailed[expertName]) {
+                                    
+                                    const expertData = chartData.detailedData.detailed[expertName];
+                                    const tooltipLines = ['', '📊 Serviços por categoria:'];
+                                    
+                                    expertData.categories.forEach(cat => {
+                                        tooltipLines.push(`• ${cat.name}: ${cat.count}`);
+                                    });
+                                    
+                                    return tooltipLines;
+                                }
+                                
+                                return ['\nNenhum detalhe disponível'];
+                            },
+                            footer: function(tooltipItems) {
+                                return `\n💡 Clique para mais detalhes`;
+                            }
+                        }
+                    }
+                },
+                onClick: function(evt, elements, chart) {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const expertName = chartData.labels[index];
+                        console.log('Clicou no técnico:', expertName, 'Index:', index);
+                        showExpertServicesDetails(expertName, data);
+                    }
+                },
+                onHover: function(evt, elements, chart) {
+                    if (elements.length > 0) {
+                        chart.canvas.style.cursor = 'pointer';
+                    } else {
+                        chart.canvas.style.cursor = 'default';
+                    }
+                }
+            }
         });
     } else {
         showNoDataMessage('servicesByExpertChart', 'Nenhum dado disponível para serviços por técnico');
@@ -930,6 +990,94 @@ function showExpertDetails(expertData) {
         `;
         
         modal.classList.add('expert-modal');
+        document.body.appendChild(modal);
+        
+        // Fechar modal ao clicar fora
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+}
+function showExpertServicesDetails(expertName, data) {
+    if (!data.servicesByExpertDetailed || 
+        !data.servicesByExpertDetailed.detailed || 
+        !data.servicesByExpertDetailed.detailed[expertName]) {
+        alert(`Nenhum dado detalhado disponível para ${expertName}`);
+        return;
+    }
+    
+    const expertData = data.servicesByExpertDetailed.detailed[expertName];
+    const totalServices = expertData.total;
+    
+    // Criar modal com detalhes
+    const width = window.innerWidth;
+    const isMobile = width < 768;
+    
+    let detailsHTML = `
+        <div class="expert-services-details" style="padding: ${isMobile ? '0.5rem' : '1rem'}; max-height: 70vh; overflow-y: auto;">
+            <h3 style="color: #0ea5e9; margin-bottom: 1rem; font-size: ${isMobile ? '1.1rem' : '1.3rem'};">Detalhes de Serviços: ${expertName}</h3>
+            <div style="background: rgba(14, 165, 233, 0.1); padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">
+                <strong style="color: #0ea5e9;">Total de serviços: ${totalServices}</strong>
+            </div>
+            <h4 style="color: #22c55e; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">📈 Distribuição por Categoria:</h4>
+            <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+    `;
+    
+    expertData.categories.forEach(cat => {
+        detailsHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(30, 41, 59, 0.5); border-radius: 4px;">
+                <span>${cat.name}</span>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="color: #0ea5e9; font-weight: bold;">${cat.count}</span>
+                    <span style="color: #94a3b8; font-size: 0.8rem;">(${cat.percentage}%)</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    detailsHTML += `</div></div>`;
+    
+    // Para mobile, mostrar alerta simplificado
+    if (isMobile) {
+        let mobileMessage = `Detalhes de ${expertName}\n\n`;
+        mobileMessage += `Total: ${totalServices} serviços\n\n`;
+        
+        expertData.categories.forEach(cat => {
+            mobileMessage += `• ${cat.name}: ${cat.count} (${cat.percentage}%)\n`;
+        });
+        
+        alert(mobileMessage);
+    } else {
+        // Para desktop, criar modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 1rem;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: #1e293b; border-radius: 8px; width: 100%; max-width: 500px; max-height: 80vh; overflow: hidden;">
+                ${detailsHTML}
+                <div style="padding: 1rem; text-align: center; border-top: 1px solid #334155;">
+                    <button onclick="this.closest('.expert-services-modal').remove()" style="background: #0ea5e9; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('expert-services-modal');
         document.body.appendChild(modal);
         
         // Fechar modal ao clicar fora

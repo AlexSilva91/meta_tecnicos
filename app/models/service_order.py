@@ -1,5 +1,6 @@
+from sqlalchemy import and_
 from app.database import db
-from datetime import datetime
+from datetime import datetime, date
 
 from app.models.expert import Expert
 from app.models.type_service import TypeService
@@ -73,6 +74,61 @@ class ServiceOrder(db.Model):
     def get_by_os_id(cls, os_id: str):
         """Busca ServiceOrder pelo ID da OS."""
         return cls.query.filter_by(os_id=os_id).first()
+    
+    @classmethod
+    def get_service_orders_grouped(cls, month: int = None, year: int = None):
+        """
+        Retorna:
+        {
+            expert_id: {
+                type_service_id: quantidade
+            }
+        }
+
+        Se month/year não forem enviados → usa mês vigente.
+        """
+
+        # Define mês/ano padrão (vigente)
+        now = datetime.now()
+        month = month or now.month
+        year = year or now.year
+
+        # Início do período
+        start_date = date(year, month, 1)
+
+        # Fim do período (início do próximo mês)
+        if month == 12:
+            end_date = date(year + 1, 1, 1)
+        else:
+            end_date = date(year, month + 1, 1)
+
+        base_query = db.session.query(ServiceOrder).filter(
+            and_(
+                ServiceOrder.os_data_agendamento >= start_date,
+                ServiceOrder.os_data_agendamento < end_date
+            )
+        )
+
+        orders = base_query.all()
+        result = {}
+
+        for order in orders:
+
+            resp_id = order.os_tecnico_responsavel
+            ts_id = order.type_service_id
+            
+            if resp_id not in result:
+                result[resp_id] = {}
+
+            result[resp_id][ts_id] = result[resp_id].get(ts_id, 0) + 1
+
+            for assistant in order.os_tecnicos_auxiliares:
+                asst_id = assistant.id
+                if asst_id not in result:
+                    result[asst_id] = {}
+                result[asst_id][ts_id] = result[asst_id].get(ts_id, 0) + 1
+
+        return result
 
     @classmethod
     def update(cls, order_id: int, **kwargs):
