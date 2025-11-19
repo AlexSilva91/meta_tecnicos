@@ -10,7 +10,7 @@ master_bp = Blueprint('master', __name__)
 @master_bp.route('/')
 def main_dashboard():
     """Rota principal do dashboard - renderiza o template HTML"""
-    logger.info('Template renderizado')
+    logger.success('Template renderizado')
     return render_template('user/index.html')
 
 @master_bp.route('/api/data')

@@ -51,6 +51,7 @@ def create_app(config_object=None):
 
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
         setup_logging(app)
+        iniciar_scheduler(app)
         
     from .service.user_service import UserService
     from .routes.login import login_bp
