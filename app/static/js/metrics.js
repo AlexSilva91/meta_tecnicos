@@ -534,6 +534,20 @@ function updateCharts(data) {
     }
 }
 
+function formatDateBR(dateString) {
+    if (!dateString) return null;
+
+    const date = new Date(dateString);
+    if (isNaN(date)) return null;
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+}
+
+
 // Atualizar tabela de serviços repetidos
 function updateRepeatedServicesTable(data) {
     const tableBody = document.querySelector('#repeatedServicesTable tbody');
@@ -576,8 +590,8 @@ function updateRepeatedServicesTable(data) {
                 <td data-label="Contrato">${contract || 'N/A'}</td>
                 <td data-label="Categoria">${category || 'N/A'}</td>
                 <td data-label="Técnicos">${experts}</td>
-                <td data-label="Primeiro Serviço">${firstDate || 'N/A'}</td>
-                <td data-label="Segundo Serviço">${secondDate || 'N/A'}</td>
+                <td data-label="Primeiro Serviço">${formatDateBR(firstDate) || 'N/A'}</td>
+                <td data-label="Segundo Serviço">${formatDateBR(secondDate) || 'N/A'}</td>
                 <td data-label="Dias Entre"><span class="status-badge ${getDaysBadgeClass(item.daysBetween)}">${item.daysBetween || 0} dias</span></td>
             `;
             tableBody.appendChild(row);
@@ -879,7 +893,7 @@ function showExpertDetails(expertData) {
             
             help.details.forEach(detail => {
                 detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
-                    📅 ${detail.date} - 🏷️ ${detail.category}
+                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category}
                 </div>`;
             });
             
@@ -913,7 +927,7 @@ function showExpertDetails(expertData) {
             
             helper.details.forEach(detail => {
                 detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
-                    📅 ${detail.date} - 🏷️ ${detail.category}
+                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category}
                 </div>`;
             });
             
