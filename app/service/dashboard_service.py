@@ -4,6 +4,7 @@ from app.models.customer import Customer
 from app.models.service_order import ServiceOrder
 from app.models.expert import Expert
 from app.models.type_service import TypeService
+from collections import defaultdict
 
 class DashboardService:
     @staticmethod
@@ -273,7 +274,7 @@ class DashboardService:
 
             total_help_interaction = helped_count + help_received_count
             if total_help_interaction == 0:
-                continue    # <<< FILTRO AQUI (IGNORA EXPERT SEM AJUDA PRESTADA/RECEBIDA)
+                continue 
 
             expert_names.append(expert.nome)
             helped_data.append(helped_count)
@@ -475,6 +476,89 @@ class DashboardService:
         return months[month - 1] if 1 <= month <= 12 else 'Mês Inválido'
     
     @staticmethod
+    def combine_services_with_assistance(assistance_data: dict, services_data: dict) -> dict:
+        """
+        Retorna no MESMO FORMATO de get_services_by_expert():
+            {
+                'labels': [...],
+                'data': [...]
+            }
+
+        Regra:
+            - Cada ajuda prestada soma +1 serviço ao técnico.
+        """
+
+        # Copia a contagem original
+        combined = defaultdict(int)
+        for expert, total in zip(services_data['labels'], services_data['data']):
+            combined[expert] += total
+
+        # Soma ajudas prestadas
+        for item in assistance_data['detailed_data']:
+            expert_name = item['expert']
+
+            # Cada item em helped_others possui "count"
+            helped_total = sum(h['count'] for h in item['helped_others'])
+            combined[expert_name] += helped_total
+
+        # Retorna exatamente no formato original
+        return {
+            'labels': list(combined.keys()),
+            'data': list(combined.values())
+        }
+
+    @staticmethod
+    def merge_services_with_assistance(services_details: dict, assistance: dict) -> dict:
+        """
+        Acrescenta serviços de AJUDA prestada diretamente na categoria correta.
+        Mantém exatamente o formato de saída de get_services_by_expert_with_details().
+        """
+
+        final_result = {
+            "summary": {},
+            "detailed": {}
+        }
+
+        category_map = defaultdict(lambda: defaultdict(int))
+
+        for expert_name, detail in services_details["detailed"].items():
+            final_result["summary"][expert_name] = detail["total"]
+
+            for cat in detail["categories"]:
+                category_map[expert_name][cat["name"]] = cat["count"]
+
+        for item in assistance["detailed_data"]:
+            expert_name = item["expert"]
+
+            for help_block in item["helped_others"]:
+                for entry in help_block["details"]:
+                    category = entry["category"] 
+                    category_map[expert_name][category] += 1
+                    final_result["summary"][expert_name] += 1
+
+        for expert_name, cat_data in category_map.items():
+
+            total = final_result["summary"][expert_name]
+
+            categories_list = []
+            for cat_name, count in cat_data.items():
+                percentage = round((count / total) * 100, 1) if total > 0 else 0
+                categories_list.append({
+                    "name": cat_name,
+                    "count": count,
+                    "percentage": percentage
+                })
+
+            categories_list.sort(key=lambda x: x["count"], reverse=True)
+
+            final_result["detailed"][expert_name] = {
+                "total": total,
+                "categories": categories_list
+            }
+
+        return final_result
+
+    @staticmethod
     def get_complete_dashboard_data(month: int = None, year: int = None) -> dict:
         """Retorna todos os dados do dashboard em um único dicionário"""
         if month is None:
@@ -490,11 +574,13 @@ class DashboardService:
             'totalExperts': DashboardService.get_total_experts(),
             'servicesWithAssist': services_with_assist_data['data'][1], 
             'repeatedServices': len(repeated_services_list),
-            'servicesByExpert': DashboardService.get_services_by_expert(month, year),
+            'servicesByExpert': DashboardService.combine_services_with_assistance(DashboardService.get_assistance_network(month, year), DashboardService.get_services_by_expert(month, year)),
+            # 'servicesByExpert': DashboardService.get_services_by_expert(month, year),
             'servicesByCategory': DashboardService.get_services_by_category(month, year),
             'servicesWithAssistChart': services_with_assist_data,
             'assistanceNetwork': DashboardService.get_assistance_network(month, year),
             'assistanceByServiceType': DashboardService.get_assistance_by_service_type(month, year),
-            'repeatedServicesList': repeated_services_list, 
-            'servicesByExpertDetailed': DashboardService.get_services_by_expert_with_details(month, year)
+            'repeatedServicesList': repeated_services_list,
+            'servicesByExpertDetailed': DashboardService.merge_services_with_assistance(DashboardService.get_services_by_expert_with_details(month, year), DashboardService.get_assistance_network(month, year)) 
+            # 'servicesByExpertDetailed': DashboardService.get_services_by_expert_with_details(month, year)
         }
