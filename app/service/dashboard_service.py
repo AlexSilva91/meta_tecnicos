@@ -346,7 +346,11 @@ class DashboardService:
 
     @staticmethod
     def get_repeated_services(month: int = None, year: int = None) -> list:
-        """Retorna serviços onde o técnico voltou mais de uma vez em menos de 30 dias"""
+        """
+        Retorna serviços reincidentes dentro de uma janela de 60 dias,
+        mas só considera reincidência válida se acontecer em <= 30 dias.
+        Mantém a estrutura de saída atual.
+        """
         if month is None:
             month = datetime.now().month
         if year is None:
@@ -355,7 +359,6 @@ class DashboardService:
         all_orders = ServiceOrder.list(limit=10000)
         repeated_services = []
         
-        # Filtra serviços do mês atual
         current_month_orders = [
             order for order in all_orders 
             if (order.os_data_agendamento.month == month and 
@@ -365,21 +368,25 @@ class DashboardService:
         for current_order in current_month_orders:
             customer_id = current_order.customer_id
             
-            # Busca serviços anteriores do mesmo cliente
+            date_limit = current_order.os_data_agendamento - timedelta(days=60)
+
             previous_orders = [
                 order for order in all_orders 
-                if (order.customer_id == customer_id and
+                if (
+                    order.customer_id == customer_id and
                     order.os_data_agendamento < current_order.os_data_agendamento and
-                    order.os_data_agendamento >= (current_order.os_data_agendamento - timedelta(days=30)))
+                    order.os_data_agendamento >= date_limit
+                )
             ]
             
             for prev_order in previous_orders:
                 days_between = (current_order.os_data_agendamento - prev_order.os_data_agendamento).days
                 
-                # Coleta todos os técnicos envolvidos em ambos os serviços
+                if days_between > 30:
+                    continue
+
                 all_experts = set()
                 
-                # Técnicos do serviço atual
                 current_responsible = Expert.get_by_id(current_order.os_tecnico_responsavel)
                 if current_responsible:
                     all_experts.add(current_responsible.nome)
@@ -387,7 +394,6 @@ class DashboardService:
                 for assistant in current_order.os_tecnicos_auxiliares:
                     all_experts.add(assistant.nome)
                 
-                # Técnicos do serviço anterior
                 prev_responsible = Expert.get_by_id(prev_order.os_tecnico_responsavel)
                 if prev_responsible:
                     all_experts.add(prev_responsible.nome)
@@ -395,11 +401,9 @@ class DashboardService:
                 for assistant in prev_order.os_tecnicos_auxiliares:
                     all_experts.add(assistant.nome)
                 
-                # Busca informações da categoria
                 current_category = TypeService.get_by_id(current_order.type_service_id)
                 category_name = current_category.name if current_category else "Desconhecida"
                 
-                # Busca informações do cliente/contrato
                 customer = Customer.get_by_id(current_order.customer_id)
                 contract_id = customer.id_contrato if customer else "Desconhecido"
                 
@@ -413,6 +417,7 @@ class DashboardService:
                 })
         
         return repeated_services
+
 
     @staticmethod
     def get_services_by_expert_with_details(month: int = None, year: int = None) -> dict:
