@@ -59,7 +59,6 @@ function adjustLayoutForScreenSize() {
         document.body.style.padding = '1rem';
     }
     
-    // Ajustar alturas dos gráficos
     const chartContainers = document.querySelectorAll('.chart-container');
     chartContainers.forEach(container => {
         if (isLandscape) {
@@ -112,9 +111,8 @@ async function loadAvailableYears(currentYear) {
     }
 }
 
-// Atualizar dashboard quando os filtros mudarem
 function updateDashboard() {
-    currentPage = 1; // Reset para primeira página ao mudar filtros
+    currentPage = 1;
     const month = parseInt(document.getElementById('monthFilter').value) + 1;
     const year = parseInt(document.getElementById('yearFilter').value);
     loadDashboardData(month, year);
@@ -146,21 +144,17 @@ async function loadDashboardData(month, year) {
     }
 }
 
-// Função para ordenar os dados de serviços repetidos
 function sortRepeatedServicesData(data) {
     if (!data || !Array.isArray(data)) return [];
     
     return [...data].sort((a, b) => {
-        // Primeiro ordena por data do segundo serviço (mais recente primeiro)
         const dateA = new Date(a.secondServiceDate || a.firstServiceDate || '2000-01-01');
         const dateB = new Date(b.secondServiceDate || b.firstServiceDate || '2000-01-01');
-        
-        // Se as datas são diferentes, ordena por data (mais recente primeiro)
+
         if (dateB.getTime() !== dateA.getTime()) {
             return dateB.getTime() - dateA.getTime();
         }
         
-        // Se as datas são iguais, ordena alfabeticamente por contrato
         const contractA = (a.contract || '').toLowerCase();
         const contractB = (b.contract || '').toLowerCase();
         
@@ -168,7 +162,6 @@ function sortRepeatedServicesData(data) {
             return contractA.localeCompare(contractB);
         }
         
-        // Se os contratos são iguais, ordena por categoria
         const categoryA = (a.category || '').toLowerCase();
         const categoryB = (b.category || '').toLowerCase();
         return categoryA.localeCompare(categoryB);
@@ -295,12 +288,9 @@ function getResponsiveChartOptions(chartType) {
 function updateCharts(data) {
     destroyExistingCharts();
     removeNoDataMessages();
-    adjustLayoutForScreenSize();
-        
-    if (data.servicesByExpert && data.servicesByExpert.labels && data.servicesByExpert.labels.length > 0) {
+    adjustLayoutForScreenSize();          
+    if (data.servicesByExpert && data.servicesByExpert.labels && data.servicesByExpert.labels.length > 0) {        
         const servicesByExpertCtx = document.getElementById('servicesByExpertChart').getContext('2d');
-        
-        // Ordenar os dados em ordem alfabética
         const sortedData = sortServicesByExpertData(data.servicesByExpert);
         
         const labels = sortedData.labels.map(label => {
@@ -316,22 +306,39 @@ function updateCharts(data) {
         const chartData = {
             labels: sortedData.labels,
             data: sortedData.data,
+            notRealized: sortedData.not_realized || [],
             detailedData: data.servicesByExpertDetailed
         };
+        
+        const datasets = [
+            {
+                label: 'Serviços Realizados',
+                data: sortedData.data,
+                backgroundColor: 'rgba(0, 150, 255, 0.7)',
+                borderColor: 'rgba(0, 150, 255, 1)',
+                borderWidth: 1,
+                borderRadius: window.innerWidth < 480 ? 2 : (window.innerWidth < 768 ? 3 : 4),
+                borderSkipped: false,
+            }
+        ];
+        
+        if (sortedData.not_realized && Array.isArray(sortedData.not_realized) && sortedData.not_realized.some(val => val > 0)) {
+            datasets.push({
+                label: 'Serviços Não Realizados',
+                data: sortedData.not_realized,
+                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 1,
+                borderRadius: window.innerWidth < 480 ? 2 : (window.innerWidth < 768 ? 3 : 4),
+                borderSkipped: false,
+            });
+        }
         
         charts.servicesByExpert = new Chart(servicesByExpertCtx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Serviços Realizados',
-                    data: sortedData.data,
-                    backgroundColor: 'rgba(0, 150, 255, 0.7)',
-                    borderColor: 'rgba(0, 150, 255, 1)',
-                    borderWidth: 1,
-                    borderRadius: window.innerWidth < 480 ? 2 : (window.innerWidth < 768 ? 3 : 4),
-                    borderSkipped: false,
-                }]
+                datasets: datasets
             },
             options: {
                 ...getResponsiveChartOptions('bar'),
@@ -344,7 +351,9 @@ function updateCharts(data) {
                                 return `Técnico: ${tooltipItems[0].label}`;
                             },
                             label: function(context) {
-                                return `Total de serviços: ${context.raw}`;
+                                const datasetLabel = context.dataset.label || '';
+                                const value = context.raw;
+                                return `${datasetLabel}: ${value}`;
                             },
                             afterBody: function(tooltipItems) {
                                 const expertIndex = tooltipItems[0].dataIndex;
@@ -361,13 +370,27 @@ function updateCharts(data) {
                                         tooltipLines.push(`• ${cat.name}: ${cat.count}`);
                                     });
                                     
+                                    if (expertData.not_performed && expertData.not_performed > 0) {
+                                        const totalServices = expertData.total + expertData.not_performed;
+                                        const notPerformedPercentage = Math.round((expertData.not_performed / totalServices) * 100);
+                                        
+                                        tooltipLines.push('', '❌ Serviços não realizados:');
+                                        tooltipLines.push(`• Total: ${expertData.not_performed} (${notPerformedPercentage}%)`);
+                                        
+                                        if (expertData.not_performed_categories && expertData.not_performed_categories.length > 0) {
+                                            expertData.not_performed_categories.forEach(cat => {
+                                                tooltipLines.push(`  - ${cat.name}: ${cat.count} (${cat.percentage}%)`);
+                                            });
+                                        }
+                                    }
+                                    
                                     return tooltipLines;
                                 }
                                 
                                 return ['\nNenhum detalhe disponível'];
                             },
                             footer: function(tooltipItems) {
-                                return `\n💡 Clique para mais detalhes`;
+                                return `\n💡 **Clique para ver detalhes completos**`;
                             }
                         }
                     }
@@ -376,7 +399,6 @@ function updateCharts(data) {
                     if (elements.length > 0) {
                         const index = elements[0].index;
                         const expertName = chartData.labels[index];
-                        console.log('Clicou no técnico:', expertName, 'Index:', index);
                         showExpertServicesDetails(expertName, data);
                     }
                 },
@@ -459,7 +481,6 @@ function updateCharts(data) {
         showNoDataMessage('servicesByCategoryChart', 'Nenhum dado disponível para serviços por categoria');
     }
     
-    // Gráfico de serviços com auxílio
     if (data.servicesWithAssistChart && data.servicesWithAssistChart.labels && data.servicesWithAssistChart.labels.length > 0) {
         const servicesWithAssistCtx = document.getElementById('servicesWithAssistChart').getContext('2d');
         
@@ -504,11 +525,9 @@ function updateCharts(data) {
         showNoDataMessage('servicesWithAssistChart', 'Nenhum dado disponível para serviços com auxílio');
     }
     
-    // Gráfico de quem ajudou quem
     if (data.assistanceNetwork && data.assistanceNetwork.labels && data.assistanceNetwork.labels.length > 0) {
         const assistanceNetworkCtx = document.getElementById('assistanceNetworkChart').getContext('2d');
         
-        // Ordenar os dados em ordem alfabética
         const sortedData = sortAssistanceNetworkData(data.assistanceNetwork);
         
         const datasets = sortedData.datasets.map(dataset => ({
@@ -544,7 +563,6 @@ function updateCharts(data) {
                                     const expertData = sortedData.detailed_data[context[0].dataIndex];
                                     const tooltips = [];
                                     
-                                    // Informações sobre quem este técnico ajudou
                                     if (expertData.helped_others && expertData.helped_others.length > 0) {
                                         tooltips.push('\n👥 Ajudou:');
                                         expertData.helped_others.forEach(help => {
@@ -553,7 +571,6 @@ function updateCharts(data) {
                                         });
                                     }
                                     
-                                    // Informações sobre quem ajudou este técnico
                                     if (expertData.helped_by_others && expertData.helped_by_others.length > 0) {
                                         tooltips.push('\n🤝 Recebeu ajuda:');
                                         expertData.helped_by_others.forEach(helper => {
@@ -596,17 +613,14 @@ function formatDateBR(dateString) {
     return `${day}/${month}/${year}`;
 }
 
-// Atualizar tabela de serviços repetidos com paginação
 function updateRepeatedServicesTable(data) {
     const tableBody = document.querySelector('#repeatedServicesTable tbody');
     tableBody.innerHTML = '';
     
     if (data && data.length > 0) {
-        // Calcular dados para a página atual
         const totalItems = data.length;
         const totalPages = Math.ceil(totalItems / itemsPerPage);
         
-        // Garantir que currentPage está dentro dos limites
         if (currentPage > totalPages) {
             currentPage = totalPages;
         }
@@ -618,11 +632,9 @@ function updateRepeatedServicesTable(data) {
         const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
         const pageData = data.slice(startIndex, endIndex);
         
-        // Preencher tabela com dados da página atual
         pageData.forEach(item => {
             const row = document.createElement('tr');
             
-            // Formatar dados para diferentes tamanhos de tela
             const contract = formatForScreenSize(item.contract, { 
                 smallMobile: 6, 
                 mobile: 8, 
@@ -657,10 +669,8 @@ function updateRepeatedServicesTable(data) {
             tableBody.appendChild(row);
         });
         
-        // Atualizar controles de paginação
         updatePaginationControls(totalItems, totalPages);
         
-        // Adicionar classes responsivas à tabela
         makeTableResponsive();
     } else {
         const row = document.createElement('tr');
@@ -672,14 +682,11 @@ function updateRepeatedServicesTable(data) {
         `;
         tableBody.appendChild(row);
         
-        // Remover controles de paginação se não houver dados
         removePaginationControls();
     }
 }
 
-// Atualizar controles de paginação
 function updatePaginationControls(totalItems, totalPages) {
-    // Remover controles de paginação existentes
     removePaginationControls();
     
     if (totalPages <= 1) return;
@@ -703,7 +710,6 @@ function updatePaginationControls(totalItems, totalPages) {
         font-size: ${isMobile ? '0.8rem' : '0.9rem'};
     `;
     
-    // Informações da página
     const startItem = ((currentPage - 1) * itemsPerPage) + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
     
@@ -711,11 +717,9 @@ function updatePaginationControls(totalItems, totalPages) {
     infoDiv.style.cssText = `color: #94a3b8;`;
     infoDiv.innerHTML = `Mostrando ${startItem}-${endItem} de ${totalItems} itens`;
     
-    // Controles de navegação
     const navDiv = document.createElement('div');
     navDiv.style.cssText = `display: flex; align-items: center; gap: 0.5rem;`;
     
-    // Botão anterior
     const prevButton = document.createElement('button');
     prevButton.innerHTML = `<i class="fas fa-chevron-left"></i>`;
     prevButton.disabled = currentPage === 1;
@@ -731,12 +735,10 @@ function updatePaginationControls(totalItems, totalPages) {
         font-size: ${isMobile ? '0.7rem' : '0.8rem'};
     `;
     
-    // Indicador de página
     const pageIndicator = document.createElement('span');
     pageIndicator.style.cssText = `color: #e2e8f0; font-weight: bold; min-width: ${isMobile ? '60px' : '80px'}; text-align: center;`;
     pageIndicator.textContent = `${currentPage} / ${totalPages}`;
     
-    // Botão próximo
     const nextButton = document.createElement('button');
     nextButton.innerHTML = `<i class="fas fa-chevron-right"></i>`;
     nextButton.disabled = currentPage === totalPages;
@@ -752,7 +754,6 @@ function updatePaginationControls(totalItems, totalPages) {
         font-size: ${isMobile ? '0.7rem' : '0.8rem'};
     `;
     
-    // Seletor de página para desktop
     if (!isMobile && totalPages > 1) {
         const pageSelect = document.createElement('select');
         pageSelect.style.cssText = `
@@ -787,7 +788,6 @@ function updatePaginationControls(totalItems, totalPages) {
     tableContainer.appendChild(paginationDiv);
 }
 
-// Remover controles de paginação
 function removePaginationControls() {
     const existingPagination = document.querySelector('.pagination-controls');
     if (existingPagination) {
@@ -795,7 +795,6 @@ function removePaginationControls() {
     }
 }
 
-// Mudar de página
 function changePage(newPage) {
     if (newPage < 1 || newPage > Math.ceil(currentRepeatedServicesData.length / itemsPerPage)) {
         return;
@@ -804,14 +803,12 @@ function changePage(newPage) {
     currentPage = newPage;
     updateRepeatedServicesTable(currentRepeatedServicesData);
     
-    // Scroll suave para o topo da tabela
     const tableElement = document.getElementById('repeatedServicesTable');
     if (tableElement) {
         tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
-// Funções auxiliares para formatação responsiva
 function formatForScreenSize(text, limits) {
     if (!text) return 'N/A';
     
@@ -853,18 +850,14 @@ function formatDateForScreenSize(dateString) {
     
     const width = window.innerWidth;
     if (width < 480) {
-        // Formato curto para mobile muito pequeno: DD/MM
         return dateString.substring(0, 5);
     } else if (width < 768) {
-        // Formato médio para mobile: DD/MM/YY
         return dateString.length > 10 ? dateString.substring(0, 8) : dateString;
     }
     
-    // Formato completo para tablet/desktop
     return dateString;
 }
 
-// Função para tornar a tabela responsiva
 function makeTableResponsive() {
     const table = document.getElementById('repeatedServicesTable');
     const width = window.innerWidth;
@@ -881,14 +874,12 @@ function makeTableResponsive() {
     }
 }
 
-// Função auxiliar para definir a classe do badge baseado nos dias
 function getDaysBadgeClass(days) {
     if (days <= 7) return 'status-pending';
     if (days <= 15) return 'status-in-progress';
     return 'status-completed';
 }
 
-// Atualizar footer com informações do filtro
 function updateFooter(filters) {
     const footer = document.querySelector('.footer p');
     if (filters && filters.month_name) {
@@ -896,7 +887,6 @@ function updateFooter(filters) {
     }
 }
 
-// Destruir gráficos existentes
 function destroyExistingCharts() {
     Object.values(charts).forEach(chart => {
         if (chart && typeof chart.destroy === 'function') {
@@ -905,7 +895,6 @@ function destroyExistingCharts() {
     });
     charts = {};
     
-    // Também destruir qualquer gráfico não gerenciado pelo objeto charts
     const chartCanvases = [
         'servicesByExpertChart',
         'servicesByCategoryChart',
@@ -924,20 +913,17 @@ function destroyExistingCharts() {
     });
 }
 
-// Nova função para remover mensagens de "sem dados"
 function removeNoDataMessages() {
     const noDataElements = document.querySelectorAll('.chart-no-data');
     noDataElements.forEach(element => element.remove());
 }
 
-// Mostrar mensagem de "sem dados"
 function showNoDataMessage(canvasId, message) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     
     const container = canvas.parentElement;
     
-    // Remover mensagens anteriores
     const existingNoData = container.querySelector('.chart-no-data');
     if (existingNoData) {
         existingNoData.remove();
@@ -967,9 +953,7 @@ function showNoDataMessage(canvasId, message) {
     container.appendChild(noDataDiv);
 }
 
-// Mostrar estado de carregamento
 function showLoadingState() {
-    // Remover loading anterior se existir
     hideLoadingState();
     
     const width = window.innerWidth;
@@ -1002,7 +986,6 @@ function showLoadingState() {
     document.body.appendChild(loadingDiv);
 }
 
-// Esconder estado de carregamento
 function hideLoadingState() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) {
@@ -1010,12 +993,9 @@ function hideLoadingState() {
     }
 }
 
-// Mostrar mensagem de erro
 function showError(message) {
-    // Remover loading primeiro
     hideLoadingState();
     
-    // Remover erros anteriores
     const existingError = document.querySelector('.error-message');
     if (existingError) {
         existingError.remove();
@@ -1038,11 +1018,9 @@ function showError(message) {
         </div>
     `;
     
-    // Inserir no topo do container
     const container = document.querySelector('.container');
     container.insertBefore(errorDiv, container.firstChild);
     
-    // Remover automaticamente após 8 segundos
     setTimeout(() => {
         if (errorDiv.parentNode) {
             errorDiv.remove();
@@ -1050,7 +1028,6 @@ function showError(message) {
     }, 8000);
 }
 
-// Inicializar tooltips se estiver usando Bootstrap
 if (typeof bootstrap !== 'undefined') {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -1067,7 +1044,6 @@ function showExpertDetails(expertData) {
             <h3 style="color: #0ea5e9; margin-bottom: 1rem; font-size: ${isMobile ? '1.1rem' : '1.3rem'};">Detalhes: ${expertData.expert}</h3>
     `;
     
-    // Seções que ajudou
     if (expertData.helped_others && expertData.helped_others.length > 0) {
         detailsHTML += `
             <div style="margin-bottom: 1.5rem;">
@@ -1101,7 +1077,6 @@ function showExpertDetails(expertData) {
         `;
     }
     
-    // Seções que ajudaram este técnico
     if (expertData.helped_by_others && expertData.helped_by_others.length > 0) {
         detailsHTML += `
             <div style="margin-bottom: 1.5rem;">
@@ -1137,7 +1112,6 @@ function showExpertDetails(expertData) {
     
     detailsHTML += `</div>`;
     
-    // Para mobile, mostrar versão simplificada
     if (isMobile) {
         let mobileMessage = `Detalhes de ${expertData.expert}\n\n`;
         
@@ -1165,7 +1139,6 @@ function showExpertDetails(expertData) {
         
         alert(mobileMessage);
     } else {
-        // Para desktop, criar modal customizado
         const modal = document.createElement('div');
         modal.style.cssText = `
             position: fixed;
@@ -1195,7 +1168,6 @@ function showExpertDetails(expertData) {
         modal.classList.add('expert-modal');
         document.body.appendChild(modal);
         
-        // Fechar modal ao clicar fora
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
@@ -1214,47 +1186,146 @@ function showExpertServicesDetails(expertName, data) {
     
     const expertData = data.servicesByExpertDetailed.detailed[expertName];
     const totalServices = expertData.total;
+    const notPerformed = expertData.not_performed || 0;
     
-    // Criar modal com detalhes
+    const totalAllServices = totalServices + notPerformed;
+    const notPerformedPercentage = totalAllServices > 0 ? Math.round((notPerformed / totalAllServices) * 100) : 0;
+    
     const width = window.innerWidth;
     const isMobile = width < 768;
     
     let detailsHTML = `
         <div class="expert-services-details" style="padding: ${isMobile ? '0.5rem' : '1rem'}; max-height: 70vh; overflow-y: auto;">
             <h3 style="color: #0ea5e9; margin-bottom: 1rem; font-size: ${isMobile ? '1.1rem' : '1.3rem'};">Detalhes de Serviços: ${expertName}</h3>
-            <div style="background: rgba(14, 165, 233, 0.1); padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">
-                <strong style="color: #0ea5e9;">Total de serviços: ${totalServices}</strong>
+            
+            <!-- Cards de Resumo -->
+            <div style="display: grid; grid-template-columns: ${isMobile ? '1fr' : '1fr 1fr'}; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div style="background: rgba(14, 165, 233, 0.1); padding: 0.75rem; border-radius: 6px; border-left: 4px solid #0ea5e9;">
+                    <div style="color: #0ea5e9; font-weight: bold; font-size: ${isMobile ? '0.8rem' : '0.9rem'};">Serviços Realizados</div>
+                    <div style="color: #0ea5e9; font-size: ${isMobile ? '1.2rem' : '1.5rem'}; font-weight: bold;">${totalServices}</div>
+                    <div style="color: #0ea5e9; font-size: 0.8rem; margin-top: 0.25rem;">
+                        ${totalAllServices > 0 ? Math.round((totalServices / totalAllServices) * 100) : 0}% do total
+                    </div>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: 6px; border-left: 4px solid #ef4444;">
+                    <div style="color: #ef4444; font-weight: bold; font-size: ${isMobile ? '0.8rem' : '0.9rem'};">Serviços Não Realizados</div>
+                    <div style="color: #ef4444; font-size: ${isMobile ? '1.2rem' : '1.5rem'}; font-weight: bold;">${notPerformed}</div>
+                    <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">
+                        ${notPerformedPercentage}% do total
+                    </div>
+                </div>
             </div>
-            <h4 style="color: #22c55e; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">📈 Distribuição por Categoria:</h4>
-            <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
     `;
     
-    expertData.categories.forEach(cat => {
+    if (expertData.categories && expertData.categories.length > 0) {
         detailsHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(30, 41, 59, 0.5); border-radius: 4px;">
-                <span>${cat.name}</span>
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <span style="color: #0ea5e9; font-weight: bold;">${cat.count}</span>
-                    <span style="color: #94a3b8; font-size: 0.8rem;">(${cat.percentage}%)</span>
+            <h4 style="color: #22c55e; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">📈 Serviços Realizados por Categoria:</h4>
+            <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'}; margin-bottom: 1.5rem;">
+        `;
+        
+        expertData.categories.forEach(cat => {
+            detailsHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(30, 41, 59, 0.5); border-radius: 4px;">
+                    <span>${cat.name}</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="color: #0ea5e9; font-weight: bold;">${cat.count}</span>
+                        <span style="color: #94a3b8; font-size: 0.8rem;">(${cat.percentage}%)</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        detailsHTML += `</div>`;
+    }
+    
+    if (notPerformed > 0) {
+        detailsHTML += `
+            <h4 style="color: #ef4444; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">❌ Serviços Não Realizados por Categoria:</h4>
+            <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+        `;
+        
+        if (expertData.not_performed_categories && expertData.not_performed_categories.length > 0) {
+            expertData.not_performed_categories.forEach(cat => {
+                detailsHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(239, 68, 68, 0.1); border-radius: 4px; border-left: 3px solid #ef4444;">
+                        <span style="color: #ef4444;">${cat.name}</span>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="color: #ef4444; font-weight: bold;">${cat.count}</span>
+                            <span style="color: #fca5a5; font-size: 0.8rem;">(${cat.percentage}%)</span>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            const blockedCategories = ["RETIRADA SEM SUCESSO", "REAGENDAMENTO", "LOCAL FECHADO"];
+            const countPerCategory = Math.round(notPerformed / blockedCategories.length);
+            const remainder = notPerformed - (countPerCategory * blockedCategories.length);
+            
+            blockedCategories.forEach((category, index) => {
+                let count = countPerCategory;
+                if (index === 0) count += remainder;
+                
+                const categoryPercentage = Math.round((count / notPerformed) * 100);
+                
+                detailsHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(239, 68, 68, 0.1); border-radius: 4px; border-left: 3px solid #ef4444;">
+                        <span style="color: #ef4444;">${category}</span>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="color: #ef4444; font-weight: bold;">${count}</span>
+                            <span style="color: #fca5a5; font-size: 0.8rem;">(${categoryPercentage}%)</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        detailsHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.2); border-radius: 4px; border: 1px solid #ef4444;">
+                    <strong style="color: #ef4444;">Total de serviços não realizados</strong>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <strong style="color: #ef4444;">${notPerformed}</strong>
+                        <span style="color: #fca5a5; font-size: 0.9rem;">(${notPerformedPercentage}% do total)</span>
+                    </div>
                 </div>
             </div>
         `;
-    });
+    }
     
-    detailsHTML += `</div></div>`;
+    detailsHTML += `</div>`;
     
-    // Para mobile, mostrar alerta simplificado
     if (isMobile) {
         let mobileMessage = `Detalhes de ${expertName}\n\n`;
-        mobileMessage += `Total: ${totalServices} serviços\n\n`;
+        mobileMessage += `✅ Realizados: ${totalServices} serviços\n`;
+        mobileMessage += `❌ Não realizados: ${notPerformed} serviços\n`;
+        mobileMessage += `📊 Total: ${totalAllServices} serviços\n\n`;
         
-        expertData.categories.forEach(cat => {
-            mobileMessage += `• ${cat.name}: ${cat.count} (${cat.percentage}%)\n`;
-        });
+        if (expertData.categories && expertData.categories.length > 0) {
+            mobileMessage += `📈 Serviços realizados:\n`;
+            expertData.categories.forEach(cat => {
+                mobileMessage += `• ${cat.name}: ${cat.count} (${cat.percentage}%)\n`;
+            });
+        }
+        
+        if (notPerformed > 0) {
+            mobileMessage += `\n❌ Serviços não realizados:\n`;
+            const blockedCategories = ["RETIRADA SEM SUCESSO", "REAGENDAMENTO", "LOCAL FECHADO"];
+            const countPerCategory = Math.round(notPerformed / blockedCategories.length);
+            const remainder = notPerformed - (countPerCategory * blockedCategories.length);
+            
+            blockedCategories.forEach((category, index) => {
+                let count = countPerCategory;
+                if (index === 0) count += remainder;
+                const categoryPercentage = Math.round((count / notPerformed) * 100);
+                mobileMessage += `• ${category}: ${count} (${categoryPercentage}%)\n`;
+            });
+            
+            mobileMessage += `\n📊 Total não realizados: ${notPerformed} (${notPerformedPercentage}%)\n`;
+        } else {
+            mobileMessage += `\n🎉 Todos os serviços foram realizados!\n`;
+        }
         
         alert(mobileMessage);
     } else {
-        // Para desktop, criar modal
         const modal = document.createElement('div');
         modal.style.cssText = `
             position: fixed;
@@ -1271,7 +1342,7 @@ function showExpertServicesDetails(expertName, data) {
         `;
         
         modal.innerHTML = `
-            <div style="background: #1e293b; border-radius: 8px; width: 100%; max-width: 500px; max-height: 80vh; overflow: hidden;">
+            <div style="background: #1e293b; border-radius: 8px; width: 100%; max-width: 600px; max-height: 80vh; overflow: hidden;">
                 ${detailsHTML}
                 <div style="padding: 1rem; text-align: center; border-top: 1px solid #334155;">
                     <button onclick="this.closest('.expert-services-modal').remove()" style="background: #0ea5e9; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
@@ -1284,7 +1355,6 @@ function showExpertServicesDetails(expertName, data) {
         modal.classList.add('expert-services-modal');
         document.body.appendChild(modal);
         
-        // Fechar modal ao clicar fora
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.remove();
@@ -1297,33 +1367,36 @@ function sortServicesByExpertData(servicesByExpertData) {
     if (!servicesByExpertData || !servicesByExpertData.labels || !servicesByExpertData.data) {
         return servicesByExpertData;
     }
-    
     const dataForSorting = servicesByExpertData.labels.map((label, index) => ({
-        label: label,
+        originalLabel: label,
         data: servicesByExpertData.data[index],
+        not_realized: servicesByExpertData.not_realized ? servicesByExpertData.not_realized[index] : 0,
         index: index
     }));
     
     dataForSorting.sort((a, b) => {
-        const labelA = (a.label || '').toLowerCase();
-        const labelB = (b.label || '').toLowerCase();
+        const labelA = (a.originalLabel || '').toLowerCase();
+        const labelB = (b.originalLabel || '').toLowerCase();
         return labelA.localeCompare(labelB);
     });
     
-    const sortedLabels = dataForSorting.map(item => item.label);
+    const sortedLabels = dataForSorting.map(item => item.originalLabel);
     const sortedData = dataForSorting.map(item => item.data);
+    const sortedNotRealized = dataForSorting.map(item => item.not_realized);
     
-    return {
+    const result = {
         labels: sortedLabels,
-        data: sortedData
+        data: sortedData,
+        not_realized: sortedNotRealized
     };
+    return result;
 }
+
 function sortAssistanceNetworkData(assistanceNetworkData) {
     if (!assistanceNetworkData || !assistanceNetworkData.labels || !assistanceNetworkData.datasets) {
         return assistanceNetworkData;
     }
     
-    // Criar array de objetos para ordenação
     const dataForSorting = assistanceNetworkData.labels.map((label, index) => ({
         label: label,
         datasets: assistanceNetworkData.datasets.map(dataset => ({
@@ -1334,18 +1407,15 @@ function sortAssistanceNetworkData(assistanceNetworkData) {
         index: index
     }));
     
-    // Ordenar em ordem alfabética pelo label (nome do técnico)
     dataForSorting.sort((a, b) => {
         const labelA = (a.label || '').toLowerCase();
         const labelB = (b.label || '').toLowerCase();
         return labelA.localeCompare(labelB);
     });
     
-    // Reconstruir os arrays ordenados
     const sortedLabels = dataForSorting.map(item => item.label);
     const sortedDetailedData = dataForSorting.map(item => item.detailed_data);
     
-    // Reconstruir os datasets ordenados
     const sortedDatasets = assistanceNetworkData.datasets.map((dataset, datasetIndex) => {
         const sortedData = dataForSorting.map(item => item.datasets[datasetIndex].data);
         return {

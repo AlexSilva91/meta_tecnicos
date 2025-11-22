@@ -6,6 +6,14 @@ from app.models.expert import Expert
 from app.models.type_service import TypeService
 from collections import defaultdict
 
+blocked_categories = {
+    "RETIRADA SEM SUCESSO",
+    "REAGENDAMENTO",
+    "LOCAL FECHADO",
+    "DESISTÊNCIA",
+    "REVERTIDO"
+}
+
 class DashboardService:
     @staticmethod
     def get_total_service_orders() -> int:
@@ -14,31 +22,6 @@ class DashboardService:
     @staticmethod
     def get_total_experts() -> int:
         return len(Expert.list_active(limit=10000))
-
-    @staticmethod
-    def get_services_by_expert() -> dict:
-        """Retorna total de serviços por técnico no mês atual."""
-        data = defaultdict(int)
-        now = datetime.now()
-        mes_atual = now.month
-        ano_atual = now.year
-
-        experts = Expert.list_active(limit=10000)
-        for expert in experts:
-            # Técnico responsável (somente OS do mês atual)
-            for order in expert.responsible_orders:
-                if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
-                    data[expert.nome] += 1
-
-            # Técnico auxiliar (somente OS do mês atual)
-            for order in expert.assistant_orders:
-                if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
-                    data[expert.nome] += 1
-
-        return {
-            'labels': list(data.keys()),
-            'data': list(data.values())
-        }
 
     @staticmethod
     def get_services_with_assist() -> dict:
@@ -120,32 +103,52 @@ class DashboardService:
 
     @staticmethod
     def get_services_by_expert(month: int = None, year: int = None) -> dict:
-        """Retorna total de serviços por técnico no mês/ano especificado"""
+        """
+        Retorna total de serviços por técnico no mês/ano especificado.
+        Mantém o formato original, adicionando somente:
+        - not_realized: total de serviços não realizados (categorias bloqueadas)
+        """
+
         if month is None:
             month = datetime.now().month
         if year is None:
             year = datetime.now().year
-            
+
         experts = Expert.list_active(limit=10000)
-        data = defaultdict(int)
-        
+
+        realized = defaultdict(int)
+        not_realized = defaultdict(int)
+
+        def process_order(expert_name, order):
+            if (
+                order.os_data_agendamento.month == month and
+                order.os_data_agendamento.year == year
+            ):
+                categoria = order.type_service.name if order.type_service else None
+
+                if categoria in blocked_categories:
+                    not_realized[expert_name] += 1
+                else:
+                    realized[expert_name] += 1
+
         for expert in experts:
-            # Serviços como técnico responsável
+
+            # Como responsável
             for order in expert.responsible_orders:
-                if (order.os_data_agendamento.month == month and 
-                    order.os_data_agendamento.year == year):
-                    data[expert.nome] += 1
-            
-            # Serviços como auxiliar
+                process_order(expert.nome, order)
+
+            # Como auxiliar
             for order in expert.assistant_orders:
-                if (order.os_data_agendamento.month == month and 
-                    order.os_data_agendamento.year == year):
-                    data[expert.nome] += 1
-        
-        return {
-            'labels': list(data.keys()),
-            'data': list(data.values())
+                process_order(expert.nome, order)
+
+        labels = list(realized.keys())
+
+        result = {
+            "labels": labels,
+            "data": [realized[name] for name in labels],
+            "not_realized": [not_realized[name] for name in labels] 
         }
+        return result
 
     @staticmethod
     def get_services_by_category(month: int = None, year: int = None) -> dict:
@@ -426,19 +429,15 @@ class DashboardService:
             month = datetime.now().month
         if year is None:
             year = datetime.now().year
-            
-        # Obter os dados agrupados
+
         detailed_data = ServiceOrder.get_service_orders_grouped(month, year)
-        
-        # Obter nomes dos técnicos e categorias
+
         experts = Expert.list_active(limit=10000)
         categories = TypeService.list(limit=10000)
         
-        # Criar mapeamentos
         expert_map = {expert.id: expert.nome for expert in experts}
         category_map = {category.id: category.name for category in categories}
         
-        # Processar dados para o frontend
         result = {
             'summary': {},
             'detailed': {}
@@ -446,12 +445,10 @@ class DashboardService:
         
         for expert_id, categories_data in detailed_data.items():
             expert_name = expert_map.get(expert_id, f"Técnico {expert_id}")
-            
-            # Calcular total
+
             total = sum(categories_data.values())
             result['summary'][expert_name] = total
             
-            # Processar dados detalhados por categoria
             detailed_categories = []
             for category_id, count in categories_data.items():
                 category_name = category_map.get(category_id, f"Categoria {category_id}")
@@ -460,8 +457,7 @@ class DashboardService:
                     'count': count,
                     'percentage': round((count / total) * 100, 1) if total > 0 else 0
                 })
-            
-            # Ordenar por quantidade (maior primeiro)
+        
             detailed_categories.sort(key=lambda x: x['count'], reverse=True)
             
             result['detailed'][expert_name] = {
@@ -483,41 +479,46 @@ class DashboardService:
     @staticmethod
     def combine_services_with_assistance(assistance_data: dict, services_data: dict) -> dict:
         """
-        Retorna no MESMO FORMATO de get_services_by_expert():
+        Retorna no MESMO FORMATO de get_services_by_expert(), preservando not_realized:
             {
                 'labels': [...],
-                'data': [...]
+                'data': [...],
+                'not_realized': [...]
             }
 
         Regra:
             - Cada ajuda prestada soma +1 serviço ao técnico.
         """
 
-        # Copia a contagem original
         combined = defaultdict(int)
-        for expert, total in zip(services_data['labels'], services_data['data']):
-            combined[expert] += total
+        not_realized_dict = {}
+        
+        for i, expert in enumerate(services_data['labels']):
+            combined[expert] += services_data['data'][i]
+            if 'not_realized' in services_data and i < len(services_data['not_realized']):
+                not_realized_dict[expert] = services_data['not_realized'][i]
+            else:
+                not_realized_dict[expert] = 0
 
-        # Soma ajudas prestadas
         for item in assistance_data['detailed_data']:
             expert_name = item['expert']
 
-            # Cada item em helped_others possui "count"
             helped_total = sum(h['count'] for h in item['helped_others'])
             combined[expert_name] += helped_total
 
-        # Retorna exatamente no formato original
-        return {
-            'labels': list(combined.keys()),
-            'data': list(combined.values())
+        labels = list(combined.keys())
+        data = list(combined.values())
+        not_realized = [not_realized_dict.get(label, 0) for label in labels]
+
+        result = {
+            'labels': labels,
+            'data': data,
+            'not_realized': not_realized
         }
+        return result
 
     @staticmethod
     def merge_services_with_assistance(services_details: dict, assistance: dict) -> dict:
-        """
-        Acrescenta serviços de AJUDA prestada diretamente na categoria correta.
-        Mantém exatamente o formato de saída de get_services_by_expert_with_details().
-        """
 
         final_result = {
             "summary": {},
@@ -525,29 +526,50 @@ class DashboardService:
         }
 
         category_map = defaultdict(lambda: defaultdict(int))
+        not_performed_map = defaultdict(int)
+        not_performed_categories_map = defaultdict(lambda: defaultdict(int))
 
         for expert_name, detail in services_details["detailed"].items():
-            final_result["summary"][expert_name] = detail["total"]
-
             for cat in detail["categories"]:
-                category_map[expert_name][cat["name"]] = cat["count"]
+                name = cat["name"]
+                count = cat["count"]
+
+                if name in blocked_categories:
+                    not_performed_map[expert_name] += count
+                    not_performed_categories_map[expert_name][name] += count 
+                    continue
+
+                category_map[expert_name][name] += count
 
         for item in assistance["detailed_data"]:
             expert_name = item["expert"]
 
             for help_block in item["helped_others"]:
                 for entry in help_block["details"]:
-                    category = entry["category"] 
+                    category = entry["category"]
+
+                    if category in blocked_categories:
+                        not_performed_map[expert_name] += 1
+                        not_performed_categories_map[expert_name][category] += 1  
+                        continue
+
                     category_map[expert_name][category] += 1
-                    final_result["summary"][expert_name] += 1
 
         for expert_name, cat_data in category_map.items():
+            total = sum(count for cat, count in cat_data.items() if cat not in blocked_categories)
 
-            total = final_result["summary"][expert_name]
+            final_result["summary"][expert_name] = {
+                "performed": total,
+                "not_performed": not_performed_map.get(expert_name, 0)
+            }
 
             categories_list = []
             for cat_name, count in cat_data.items():
+                if cat_name in blocked_categories:
+                    continue
+
                 percentage = round((count / total) * 100, 1) if total > 0 else 0
+
                 categories_list.append({
                     "name": cat_name,
                     "count": count,
@@ -556,9 +578,20 @@ class DashboardService:
 
             categories_list.sort(key=lambda x: x["count"], reverse=True)
 
+            not_performed_categories = []
+            if expert_name in not_performed_categories_map:
+                for cat_name, count in not_performed_categories_map[expert_name].items():
+                    not_performed_categories.append({
+                        "name": cat_name,
+                        "count": count,
+                        "percentage": round((count / not_performed_map.get(expert_name, 1)) * 100, 1) if not_performed_map.get(expert_name, 0) > 0 else 0
+                    })
+
             final_result["detailed"][expert_name] = {
                 "total": total,
-                "categories": categories_list
+                "not_performed": not_performed_map.get(expert_name, 0),
+                "categories": categories_list,
+                "not_performed_categories": not_performed_categories 
             }
 
         return final_result
@@ -579,13 +612,15 @@ class DashboardService:
             'totalExperts': DashboardService.get_total_experts(),
             'servicesWithAssist': services_with_assist_data['data'][1], 
             'repeatedServices': len(repeated_services_list),
-            'servicesByExpert': DashboardService.combine_services_with_assistance(DashboardService.get_assistance_network(month, year), DashboardService.get_services_by_expert(month, year)),
+            'servicesByExpert': DashboardService.combine_services_with_assistance(DashboardService.get_assistance_network(month, year), 
+                                                                                  DashboardService.get_services_by_expert(month, year)),
             # 'servicesByExpert': DashboardService.get_services_by_expert(month, year),
             'servicesByCategory': DashboardService.get_services_by_category(month, year),
             'servicesWithAssistChart': services_with_assist_data,
             'assistanceNetwork': DashboardService.get_assistance_network(month, year),
             'assistanceByServiceType': DashboardService.get_assistance_by_service_type(month, year),
             'repeatedServicesList': repeated_services_list,
-            'servicesByExpertDetailed': DashboardService.merge_services_with_assistance(DashboardService.get_services_by_expert_with_details(month, year), DashboardService.get_assistance_network(month, year)) 
+            'servicesByExpertDetailed': DashboardService.merge_services_with_assistance(DashboardService.get_services_by_expert_with_details(month, year), 
+                                                                                        DashboardService.get_assistance_network(month, year)) 
             # 'servicesByExpertDetailed': DashboardService.get_services_by_expert_with_details(month, year)
         }
