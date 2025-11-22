@@ -231,7 +231,8 @@ class DashboardService:
                         'assistants': assistants,
                         'date': order.os_data_agendamento.strftime('%Y-%m-%d'),
                         'category': category_name,
-                        'service_id': order.id
+                        'service_id': order.id, 
+                        'service_os_id': order.os_id 
                     })
 
             helped_count = 0
@@ -251,7 +252,8 @@ class DashboardService:
                             'main_expert': main_expert.nome,
                             'date': order.os_data_agendamento.strftime('%Y-%m-%d'),
                             'category': category_name,
-                            'service_id': order.id
+                            'service_id': order.id,
+                            'service_os_id': order.os_id 
                         })
 
             assistant_summary = defaultdict(int)
@@ -262,7 +264,8 @@ class DashboardService:
                     assistant_full_details[assistant].append({
                         'date': data['date'],
                         'category': data['category'],
-                        'service_id': data['service_id']
+                        'service_id': data['service_id'],
+                        'service_os_id': data['service_os_id'] 
                     })
 
             helped_summary = defaultdict(int)
@@ -272,7 +275,8 @@ class DashboardService:
                 helped_full_details[data['main_expert']].append({
                     'date': data['date'],
                     'category': data['category'],
-                    'service_id': data['service_id']
+                    'service_id': data['service_id'],
+                    'service_os_id': data['service_os_id'] 
                 })
 
             total_help_interaction = helped_count + help_received_count
@@ -351,8 +355,9 @@ class DashboardService:
     def get_repeated_services(month: int = None, year: int = None) -> list:
         """
         Retorna serviços reincidentes dentro de uma janela de 60 dias,
-        mas só considera reincidência válida se acontecer em <= 30 dias.
-        Mantém a estrutura de saída atual.
+        mas só considera reincidência válida se acontecer em <= 30 dias
+        e a categoria NÃO estiver na lista de bloqueio.
+        Mantém a estrutura de saída atual, porém agrupada por contrato.
         """
         if month is None:
             month = datetime.now().month
@@ -364,8 +369,10 @@ class DashboardService:
         
         current_month_orders = [
             order for order in all_orders 
-            if (order.os_data_agendamento.month == month and 
-                order.os_data_agendamento.year == year)
+            if (
+                order.os_data_agendamento.month == month and 
+                order.os_data_agendamento.year == year
+            )
         ]
         
         for current_order in current_month_orders:
@@ -388,6 +395,15 @@ class DashboardService:
                 if days_between > 30:
                     continue
 
+                current_category_obj = TypeService.get_by_id(current_order.type_service_id)
+                current_category = current_category_obj.name if current_category_obj else "Desconhecida"
+
+                # -------------------------
+                # FILTRO DAS CATEGORIAS BLOQUEADAS
+                # -------------------------
+                if current_category.upper() in blocked_categories:
+                    continue
+
                 all_experts = set()
                 
                 current_responsible = Expert.get_by_id(current_order.os_tecnico_responsavel)
@@ -403,24 +419,37 @@ class DashboardService:
                 
                 for assistant in prev_order.os_tecnicos_auxiliares:
                     all_experts.add(assistant.nome)
-                
-                current_category = TypeService.get_by_id(current_order.type_service_id)
-                category_name = current_category.name if current_category else "Desconhecida"
-                
+
                 customer = Customer.get_by_id(current_order.customer_id)
                 contract_id = customer.id_contrato if customer else "Desconhecido"
                 
                 repeated_services.append({
                     'contract': contract_id,
-                    'category': category_name,
+                    'category': current_category,
                     'experts': list(all_experts),
                     'firstServiceDate': prev_order.os_data_agendamento.strftime('%Y-%m-%d'),
                     'secondServiceDate': current_order.os_data_agendamento.strftime('%Y-%m-%d'),
-                    'daysBetween': days_between
+                    'daysBetween': days_between,
+                    'firstServiceId': prev_order.id,
+                    'secondServiceId': current_order.id
                 })
         
-        return repeated_services
+        grouped = {}
+        for item in repeated_services:
+            contract = item['contract']
+            if contract not in grouped:
+                grouped[contract] = []
+            grouped[contract].append(item)
 
+        final_output = [
+            {
+                'contract': contract,
+                'items': grouped[contract]
+            }
+            for contract in grouped
+        ]
+
+        return final_output
 
     @staticmethod
     def get_services_by_expert_with_details(month: int = None, year: int = None) -> dict:

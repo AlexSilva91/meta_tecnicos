@@ -616,75 +616,145 @@ function formatDateBR(dateString) {
 function updateRepeatedServicesTable(data) {
     const tableBody = document.querySelector('#repeatedServicesTable tbody');
     tableBody.innerHTML = '';
-    
-    if (data && data.length > 0) {
-        const totalItems = data.length;
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-        
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        if (currentPage < 1) {
-            currentPage = 1;
-        }
-        
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-        const pageData = data.slice(startIndex, endIndex);
-        
-        pageData.forEach(item => {
+
+    const grouped = data.map(group => ({
+        contract: group.contract,
+        items: group.items
+    }));
+
+    const totalItems = grouped.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+
+    const pageData = grouped.slice(startIndex, endIndex);
+
+    if (pageData.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td colspan="6" style="
+                text-align:center;
+                color:#94a3b8;
+                padding:1.5rem;
+            ">Nenhum serviço repetido encontrado para o período selecionado</td>
+        `;
+        tableBody.appendChild(row);
+        removePaginationControls();
+        return;
+    }
+
+    pageData.forEach(group => {
+        const parentRow = document.createElement('tr');
+        parentRow.className = "parent-row";
+        parentRow.style.cursor = "pointer";
+
+        parentRow.innerHTML = `
+            <td colspan="6" style="
+                padding: 0.95rem 1rem;
+                border-radius: 6px;
+                background: #1e293b;
+                color: #e2e8f0;
+            ">
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    gap:12px;
+                    font-weight:600;
+                ">
+                    <i class="fas fa-chevron-right parent-icon" style="transition:0.25s;"></i>
+
+                    <span style="font-size:0.95rem;">
+                        Contrato <strong>${group.contract}</strong>
+                    </span>
+
+                    <span style="
+                        margin-left:auto;
+                        background:#0ea5e9;
+                        padding:3px 9px;
+                        border-radius:12px;
+                        font-size:0.75rem;
+                        color:white;
+                    ">
+                        ${group.items.length}
+                    </span>
+                </div>
+            </td>
+        `;
+
+        tableBody.appendChild(parentRow);
+
+        const headerRow = document.createElement('tr');
+        headerRow.className = `child-row child-${group.contract}`;
+        headerRow.style.display = "none";
+        headerRow.style.background = "rgba(148,163,184,0.08)";
+
+        headerRow.innerHTML = `
+            <td></td>
+            <td style="font-weight:600; padding:6px 4px;">Categoria</td>
+            <td style="font-weight:600; padding:6px 4px;">Técnicos</td>
+            <td style="font-weight:600; padding:6px 4px;">Data do Primeiro Serviço</td>
+            <td style="font-weight:600; padding:6px 4px;">Data do Segundo Serviço</td>
+            <td style="font-weight:600; padding:6px 4px;">Intervalo entre Serviços</td>
+        `;
+
+        tableBody.appendChild(headerRow);
+
+        group.items.forEach(item => {
             const row = document.createElement('tr');
-            
-            const contract = formatForScreenSize(item.contract, { 
-                smallMobile: 6, 
-                mobile: 8, 
-                default: 12 
-            });
-            
-            const category = formatForScreenSize(item.category, { 
-                smallMobile: 10, 
-                mobile: 12, 
-                default: 20 
-            });
-            
-            const experts = item.experts ? 
-                formatArrayForScreenSize(item.experts, {
-                    smallMobile: 6,
-                    mobile: 8,
-                    default: 15
-                })
+            row.className = `child-row child-${group.contract}`;
+            row.style.display = "none";
+            row.style.background = "rgba(255,255,255,0.03)";
+
+            const category = item.category;
+
+            const experts = item.experts
+                ? formatArrayForScreenSize(item.experts, { smallMobile: 6, mobile: 8, default: 15 })
                 : 'N/A';
-            
+
             const firstDate = formatDateForScreenSize(item.firstServiceDate);
             const secondDate = formatDateForScreenSize(item.secondServiceDate);
-            
+
             row.innerHTML = `
-                <td data-label="Contrato">${contract || 'N/A'}</td>
-                <td data-label="Categoria">${category || 'N/A'}</td>
-                <td data-label="Técnicos">${experts}</td>
-                <td data-label="Primeiro Serviço">${formatDateBR(firstDate) || 'N/A'}</td>
-                <td data-label="Segundo Serviço">${formatDateBR(secondDate) || 'N/A'}</td>
-                <td data-label="Dias Entre"><span class="status-badge ${getDaysBadgeClass(item.daysBetween)}">${item.daysBetween || 0} dias</span></td>
+                <td></td>
+                <td>${category}</td>
+                <td>${experts}</td>
+                <td>${formatDateBR(firstDate)} - ID ${item.firstServiceId}</td>
+                <td>${formatDateBR(secondDate)} - ID ${item.secondServiceId}</td>
+                <td>
+                    <span class="status-badge ${getDaysBadgeClass(item.daysBetween)}">
+                        ${item.daysBetween} dias
+                    </span>
+                </td>
             `;
             tableBody.appendChild(row);
         });
-        
-        updatePaginationControls(totalItems, totalPages);
-        
-        makeTableResponsive();
-    } else {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td colspan="6" style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: ${window.innerWidth < 480 ? '0.8rem' : '0.9rem'};">
-                <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                Nenhum serviço repetido encontrado para o período selecionado
-            </td>
-        `;
-        tableBody.appendChild(row);
-        
-        removePaginationControls();
-    }
+        parentRow.addEventListener("click", () => {
+            const icon = parentRow.querySelector(".parent-icon");
+            const childRows = document.querySelectorAll(`.child-${group.contract}`);
+            const expanded = icon.classList.contains("expanded");
+
+            childRows.forEach(r => {
+                r.style.display = expanded ? "none" : "table-row";
+            });
+
+            if (expanded) {
+                icon.classList.remove("expanded");
+                icon.style.transform = "rotate(0deg)";
+            } else {
+                icon.classList.add("expanded");
+                icon.style.transform = "rotate(90deg)";
+            }
+        });
+    });
+
+    updatePaginationControls(totalItems, totalPages);
+    makeTableResponsive();
 }
+
 
 function updatePaginationControls(totalItems, totalPages) {
     removePaginationControls();
@@ -1058,7 +1128,7 @@ function showExpertDetails(expertData) {
             
             help.details.forEach(detail => {
                 detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
-                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category}
+                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category} - 🆔 OS: ${detail.service_os_id}
                 </div>`;
             });
             
@@ -1091,7 +1161,7 @@ function showExpertDetails(expertData) {
             
             helper.details.forEach(detail => {
                 detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
-                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category}
+                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category} - 🆔 OS: ${detail.service_os_id}
                 </div>`;
             });
             
