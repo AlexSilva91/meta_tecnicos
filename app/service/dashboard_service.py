@@ -11,7 +11,8 @@ blocked_categories = {
     "REAGENDAMENTO",
     "LOCAL FECHADO",
     "DESISTÊNCIA",
-    "REVERTIDO"
+    "REVERTIDO",
+    "PROMESSA DE PAGAMENTO"
 }
 
 class DashboardService:
@@ -624,6 +625,43 @@ class DashboardService:
             }
 
         return final_result
+
+    @staticmethod
+    def search_datails_order_services(contract: int, id_order_first: int = None, id_order_secund: int = None):
+        """
+        Retorna os serviços do contrato.
+        - Se IDs forem informados, filtra pelos IDs.
+        - Se não forem informados, retorna todos.
+        """
+        try:
+            customer = Customer.get_by_contract(str(contract))
+            if not customer:
+                return []
+
+            orders_services = ServiceOrder.get_by_customer_id(customer.id)
+            if not orders_services:
+                return []
+
+            resultado = []
+
+            ids_filtrar = {id_order_first, id_order_secund}
+            ids_filtrar = {i for i in ids_filtrar if i is not None} 
+
+            for os_item in orders_services:
+                if ids_filtrar and os_item.id not in ids_filtrar:
+                    continue
+
+                resultado.append({
+                    "id": os_item.id,
+                    "descricao": os_item.os_conteudo,
+                    "resolucao": os_item.os_servicoprestado
+                })
+
+            return resultado
+
+        except Exception as e:
+            print(f"Erro: {e}")
+            return []
 
     @staticmethod
     def get_complete_dashboard_data(month: int = None, year: int = None) -> dict:

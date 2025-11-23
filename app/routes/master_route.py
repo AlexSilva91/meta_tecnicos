@@ -283,3 +283,32 @@ def get_available_months():
     except Exception as e:
         logger.error(f'Erro ao carregar meses disponíveis: {e}')
         return jsonify({'error': f'Erro ao carregar meses disponíveis: {str(e)}'}), 500
+
+@master_bp.route('/api/details-order-service', methods=["GET", "POST"])
+def order_services():
+    """
+    Aceita GET e POST para consultar serviços.
+    GET  -> /api/details-order-service?contract_id=123&id_order_first=10&id_order_secund=20
+    POST -> {"contract_id": 123, "id_order_first": 10, "id_order_secund": 20}
+    """
+    if request.method == "GET":
+        contract_id = request.args.get("contract_id", type=int)
+        id_order_first = request.args.get("id_order_first", type=int)
+        id_order_secund = request.args.get("id_order_secund", type=int)
+
+    else:  # POST
+        data = request.get_json() or {}
+        contract_id = data.get("contract_id")
+        id_order_first = data.get("id_order_first")
+        id_order_secund = data.get("id_order_secund")
+
+    if not contract_id:
+        return jsonify({"error": "contract_id é obrigatório"}), 400
+
+    resultado = DashboardService.search_datails_order_services(
+        contract=contract_id,
+        id_order_first=id_order_first,
+        id_order_secund=id_order_secund
+    )
+
+    return jsonify(resultado), 200

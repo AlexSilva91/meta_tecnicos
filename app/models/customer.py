@@ -12,7 +12,7 @@ class Customer(db.Model):
     service_orders = db.relationship('ServiceOrder', backref='customer', lazy=True)
 
     def __repr__(self):
-        return f"<Customer {self.cliente_nome}>"
+        return f"<Customer {self.id}>"
 
     # ---------- CRUD ----------
 

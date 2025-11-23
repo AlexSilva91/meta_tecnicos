@@ -11,11 +11,11 @@ class ServiceOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     os_id = db.Column(db.String(50), unique=True, nullable=False)
     os_data_agendamento = db.Column(db.DateTime, nullable=False)
-    os_data_cadastro = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    os_data_cadastro = db.Column(db.DateTime, nullable=False)
     os_data_finalizacao = db.Column(db.DateTime, nullable=True)
-    os_conteudo = db.Column(db.String(200), nullable=False)
-    os_servicoprestado = db.Column(db.String(100), nullable=False)
-    
+    os_conteudo = db.Column(db.Text, nullable=False)
+    os_servicoprestado = db.Column(db.Text, nullable=False)
+
     # 🔹 Relacionamento com TypeService
     type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
     type_service = db.relationship("TypeService", backref="service_orders")
@@ -59,6 +59,11 @@ class ServiceOrder(db.Model):
         db.session.commit()
         return order
 
+
+    @classmethod
+    def get_by_customer_id(cls, customer_id: int):
+        """Busca ServiceOrder pelo ID."""
+        return cls.query.filter_by(customer_id=customer_id).all()
 
     @classmethod
     def get_by_id(cls, order_id: int):

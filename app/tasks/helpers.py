@@ -195,7 +195,7 @@ def preparar_dados_os(os_data, tecnicos_salvos, cliente_id):
         ]
 
         # 🔹 Criar ou buscar TypeService
-        motivo_descricao = os_data.get('os_motivo_descricao', '').strip()[:200]
+        motivo_descricao = os_data.get('os_motivo_descricao', '').strip()
         type_service = TypeService.get_by_name(motivo_descricao)
         if not type_service and motivo_descricao:
             type_service = TypeService.create(name=motivo_descricao)
@@ -205,8 +205,8 @@ def preparar_dados_os(os_data, tecnicos_salvos, cliente_id):
             'os_data_agendamento': data_agendamento,
             'os_data_cadastro': data_cadastro,
             'os_data_finalizacao': data_finalizacao,
-            'os_conteudo': os_data.get('os_conteudo', '')[:200],
-            'os_servicoprestado': os_data.get('os_servicoprestado', '')[:100],
+            'os_conteudo': os_data.get('os_conteudo', ''),
+            'os_servicoprestado': os_data.get('os_servicoprestado', ''),
             'type_service_id': type_service.id if type_service else None,
             'os_tecnico_responsavel': tecnico_responsavel_id,
             'customer_id': cliente_id,

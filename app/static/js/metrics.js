@@ -702,6 +702,8 @@ function updateRepeatedServicesTable(data) {
             row.className = `child-row child-${group.contract}`;
             row.style.display = "none";
             row.style.background = "rgba(255,255,255,0.03)";
+            row.style.cursor = "pointer"; // Torna a linha clicável
+            row.title = "Clique para ver detalhes do serviço";
 
             const category = item.category;
 
@@ -724,8 +726,16 @@ function updateRepeatedServicesTable(data) {
                     </span>
                 </td>
             `;
+            
+            // Adiciona o evento de clique para a linha filha
+            row.addEventListener("click", (e) => {
+                e.stopPropagation(); // Impede que o evento propague para a linha pai
+                fetchServiceDetails(group.contract, item.firstServiceId, item.secondServiceId);
+            });
+            
             tableBody.appendChild(row);
         });
+
         parentRow.addEventListener("click", () => {
             const icon = parentRow.querySelector(".parent-icon");
             const childRows = document.querySelectorAll(`.child-${group.contract}`);
@@ -748,6 +758,252 @@ function updateRepeatedServicesTable(data) {
     updatePaginationControls(totalItems, totalPages);
     makeTableResponsive();
 }
+
+// Função para buscar os detalhes do serviço
+async function fetchServiceDetails(contract, firstServiceId, secondServiceId) {
+    try {
+        // Mostrar loading no popup
+        showServiceDetailsPopup([], true);
+        
+        const response = await fetch('/api/details-order-service', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contract_id: contract,
+                id_order_first: firstServiceId,
+                id_order_secund: secondServiceId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao buscar detalhes do serviço');
+        }
+
+        const serviceDetails = await response.json();
+        showServiceDetailsPopup(serviceDetails, false);
+        
+    } catch (error) {
+        console.error('Erro:', error);
+        showServiceDetailsPopup([], false, 'Erro ao carregar detalhes do serviço');
+    }
+}
+
+// Função para exibir o popup com os detalhes
+function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null) {
+    // Remove popup existente se houver
+    const existingPopup = document.getElementById('serviceDetailsPopup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+
+    // Cria o overlay do popup
+    const popupOverlay = document.createElement('div');
+    popupOverlay.id = 'serviceDetailsPopup';
+    popupOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+
+    // Cria o conteúdo do popup
+    const popupContent = document.createElement('div');
+    popupContent.style.cssText = `
+        background: #1e293b;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 800px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+        color: #e2e8f0;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        border: 1px solid #334155;
+    `;
+
+    let contentHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #f8fafc; font-size: 1.25rem;">
+                Detalhes dos Serviços
+            </h3>
+            <button id="closePopup" style="
+                background: none;
+                border: none;
+                color: #94a3b8;
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s;
+            ">&times;</button>
+        </div>
+    `;
+
+    if (isLoading) {
+        contentHTML += `
+            <div style="text-align: center; padding: 40px;">
+                <div style="color: #0ea5e9; font-size: 3rem; margin-bottom: 16px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p style="color: #94a3b8; margin: 0;">Carregando detalhes do serviço...</p>
+            </div>
+        `;
+    } else if (error) {
+        contentHTML += `
+            <div style="text-align: center; padding: 40px;">
+                <div style="color: #ef4444; font-size: 3rem; margin-bottom: 16px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <p style="color: #94a3b8; margin: 0;">${error}</p>
+            </div>
+        `;
+    } else if (serviceDetails.length === 0) {
+        contentHTML += `
+            <div style="text-align: center; padding: 40px;">
+                <div style="color: #94a3b8; font-size: 3rem; margin-bottom: 16px;">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <p style="color: #94a3b8; margin: 0;">Nenhum detalhe encontrado para este serviço</p>
+            </div>
+        `;
+    } else {
+        serviceDetails.forEach((detail, index) => {
+            const descricaoFormatada = detail.descricao ? detail.descricao.replace(/\r\n/g, '<br>') : 'N/A';
+            const resolucaoFormatada = detail.resolucao ? detail.resolucao.replace(/\r\n/g, '<br>') : 'N/A';
+            
+            contentHTML += `
+                <div style="
+                    background: #0f172a;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin-bottom: 16px;
+                    border-left: 4px solid #0ea5e9;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                        <h4 style="margin: 0; color: #0ea5e9; font-size: 1.1rem;">
+                            Serviço ID: ${detail.id || 'N/A'}
+                        </h4>
+                        <span style="
+                            background: #334155;
+                            color: #e2e8f0;
+                            padding: 4px 12px;
+                            border-radius: 12px;
+                            font-size: 0.8rem;
+                        ">
+                            ${index + 1}/${serviceDetails.length}
+                        </span>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <h5 style="margin: 0 0 8px 0; color: #f8fafc; font-size: 0.9rem;">
+                            Descrição:
+                        </h5>
+                        <div style="
+                            background: rgba(148, 163, 184, 0.1);
+                            padding: 12px;
+                            border-radius: 6px;
+                            color: #cbd5e1;
+                            font-size: 0.9rem;
+                            line-height: 1.5;
+                        ">${descricaoFormatada}</div>
+                    </div>
+                    
+                    <div>
+                        <h5 style="margin: 0 0 8px 0; color: #f8fafc; font-size: 0.9rem;">
+                            Resolução:
+                        </h5>
+                        <div style="
+                            background: rgba(148, 163, 184, 0.1);
+                            padding: 12px;
+                            border-radius: 6px;
+                            color: #cbd5e1;
+                            font-size: 0.9rem;
+                            line-height: 1.5;
+                        ">${resolucaoFormatada}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    popupContent.innerHTML = contentHTML;
+    popupOverlay.appendChild(popupContent);
+    document.body.appendChild(popupOverlay);
+
+    // Adiciona evento para fechar o popup
+    const closeButton = document.getElementById('closePopup');
+    closeButton.addEventListener('click', () => {
+        popupOverlay.remove();
+    });
+
+    // Fecha o popup ao clicar fora do conteúdo
+    popupOverlay.addEventListener('click', (e) => {
+        if (e.target === popupOverlay) {
+            popupOverlay.remove();
+        }
+    });
+
+    // Fecha o popup com a tecla ESC
+    const handleEscKey = (e) => {
+        if (e.key === 'Escape') {
+            popupOverlay.remove();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    document.addEventListener('keydown', handleEscKey);
+}
+
+// Adiciona estilos CSS para melhorar a aparência das linhas clicáveis
+const style = document.createElement('style');
+style.textContent = `
+    .child-row:hover {
+        background: rgba(14, 165, 233, 0.1) !important;
+        transition: background-color 0.2s;
+    }
+    
+    .child-row td {
+        padding: 10px 4px !important;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    
+    #serviceDetailsPopup::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    #serviceDetailsPopup::-webkit-scrollbar-track {
+        background: #1e293b;
+        border-radius: 3px;
+    }
+    
+    #serviceDetailsPopup::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 3px;
+    }
+    
+    #serviceDetailsPopup::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+    }
+    
+    #closePopup:hover {
+        background: rgba(148, 163, 184, 0.2) !important;
+        color: #e2e8f0 !important;
+    }
+`;
+document.head.appendChild(style);
 
 
 function updatePaginationControls(totalItems, totalPages) {
