@@ -702,7 +702,7 @@ function updateRepeatedServicesTable(data) {
             row.className = `child-row child-${group.contract}`;
             row.style.display = "none";
             row.style.background = "rgba(255,255,255,0.03)";
-            row.style.cursor = "pointer"; // Torna a linha clicável
+            row.style.cursor = "pointer";
             row.title = "Clique para ver detalhes do serviço";
 
             const category = item.category;
@@ -727,9 +727,8 @@ function updateRepeatedServicesTable(data) {
                 </td>
             `;
             
-            // Adiciona o evento de clique para a linha filha
             row.addEventListener("click", (e) => {
-                e.stopPropagation(); // Impede que o evento propague para a linha pai
+                e.stopPropagation();
                 fetchServiceDetails(group.contract, item.firstServiceId, item.secondServiceId);
             });
             
@@ -759,10 +758,9 @@ function updateRepeatedServicesTable(data) {
     makeTableResponsive();
 }
 
-// Função para buscar os detalhes do serviço
 async function fetchServiceDetails(contract, firstServiceId, secondServiceId) {
     try {
-        // Mostrar loading no popup
+
         showServiceDetailsPopup([], true);
         
         const response = await fetch('/api/details-order-service', {
@@ -785,20 +783,17 @@ async function fetchServiceDetails(contract, firstServiceId, secondServiceId) {
         showServiceDetailsPopup(serviceDetails, false);
         
     } catch (error) {
-        console.error('Erro:', error);
         showServiceDetailsPopup([], false, 'Erro ao carregar detalhes do serviço');
     }
 }
 
-// Função para exibir o popup com os detalhes
 function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null) {
-    // Remove popup existente se houver
+
     const existingPopup = document.getElementById('serviceDetailsPopup');
     if (existingPopup) {
         existingPopup.remove();
     }
 
-    // Cria o overlay do popup
     const popupOverlay = document.createElement('div');
     popupOverlay.id = 'serviceDetailsPopup';
     popupOverlay.style.cssText = `
@@ -815,7 +810,6 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
         padding: 20px;
     `;
 
-    // Cria o conteúdo do popup
     const popupContent = document.createElement('div');
     popupContent.style.cssText = `
         background: #1e293b;
@@ -881,9 +875,20 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
             </div>
         `;
     } else {
-        serviceDetails.forEach((detail, index) => {
+        const sortedServiceDetails = [...serviceDetails].sort((a, b) => {
+            if (a.data_finalizacao && b.data_finalizacao) {
+                return new Date(b.data_finalizacao) - new Date(a.data_finalizacao);
+            }
+            return b.id - a.id;
+        });
+        
+        const mostRecentService = sortedServiceDetails[0];
+        
+        sortedServiceDetails.forEach((detail, index) => {
             const descricaoFormatada = detail.descricao ? detail.descricao.replace(/\r\n/g, '<br>') : 'N/A';
             const resolucaoFormatada = detail.resolucao ? detail.resolucao.replace(/\r\n/g, '<br>') : 'N/A';
+            
+            const isMostRecent = detail.id === mostRecentService.id;
             
             contentHTML += `
                 <div style="
@@ -897,15 +902,27 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                         <h4 style="margin: 0; color: #0ea5e9; font-size: 1.1rem;">
                             Serviço ID: ${detail.id || 'N/A'}
                         </h4>
-                        <span style="
-                            background: #334155;
-                            color: #e2e8f0;
-                            padding: 4px 12px;
-                            border-radius: 12px;
-                            font-size: 0.8rem;
-                        ">
-                            ${index + 1}/${serviceDetails.length}
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${isMostRecent ? `
+                            <span style="
+                                background: #0ea5e9;
+                                color: white;
+                                padding: 4px 8px;
+                                border-radius: 12px;
+                                font-size: 0.7rem;
+                                font-weight: bold;
+                            ">MAIS RECENTE</span>
+                            ` : ''}
+                            <span style="
+                                background: #334155;
+                                color: #e2e8f0;
+                                padding: 4px 12px;
+                                border-radius: 12px;
+                                font-size: 0.8rem;
+                            ">
+                                ${index + 1}/${sortedServiceDetails.length}
+                            </span>
+                        </div>
                     </div>
                     
                     <div style="margin-bottom: 16px;">
@@ -922,7 +939,7 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                         ">${descricaoFormatada}</div>
                     </div>
                     
-                    <div>
+                    <div style="margin-bottom: 16px;">
                         <h5 style="margin: 0 0 8px 0; color: #f8fafc; font-size: 0.9rem;">
                             Resolução:
                         </h5>
@@ -935,29 +952,121 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                             line-height: 1.5;
                         ">${resolucaoFormatada}</div>
                     </div>
+                    
+                    ${isMostRecent ? `
+                    <div style="
+                        background: rgba(14, 165, 233, 0.1);
+                        padding: 12px;
+                        border-radius: 6px;
+                        border: 1px solid rgba(14, 165, 233, 0.3);
+                        margin-top: 12px;
+                    ">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e2e8f0; font-size: 0.9rem;">
+                            <input type="checkbox" id="retrabalhoCheckbox" 
+                                   ${detail.retrabalho ? 'checked' : ''}
+                                   style="margin: 0; cursor: pointer;">
+                            Marcar como retrabalho
+                        </label>
+                    </div>
+                    ` : ''}
                 </div>
             `;
         });
+
+        if (serviceDetails.length > 0) {
+            contentHTML += `
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                    <button id="saveRetrabalhoBtn" style="
+                        background: #0ea5e9;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                        transition: background-color 0.2s;
+                    ">Salvar Retrabalho</button>
+                </div>
+            `;
+        }
     }
 
     popupContent.innerHTML = contentHTML;
     popupOverlay.appendChild(popupContent);
     document.body.appendChild(popupOverlay);
 
-    // Adiciona evento para fechar o popup
     const closeButton = document.getElementById('closePopup');
     closeButton.addEventListener('click', () => {
         popupOverlay.remove();
     });
 
-    // Fecha o popup ao clicar fora do conteúdo
+    const saveButton = document.getElementById('saveRetrabalhoBtn');
+    if (saveButton) {
+        saveButton.addEventListener('click', async () => {
+            const checkbox = document.getElementById('retrabalhoCheckbox');
+            if (checkbox) {
+                const isRetrabalho = checkbox.checked;
+                const sortedServiceDetails = [...serviceDetails].sort((a, b) => {
+                    if (a.data_finalizacao && b.data_finalizacao) {
+                        return new Date(b.data_finalizacao) - new Date(a.data_finalizacao);
+                    }
+                    return b.id - a.id;
+                });
+                const mostRecentService = sortedServiceDetails[0];
+                
+                try {
+                    saveButton.disabled = true;
+                    saveButton.textContent = 'Salvando...';
+                    saveButton.style.background = '#64748b';
+                    
+                    const response = await fetch('/api/update-order-service', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            os_id: mostRecentService.id,
+                            retrabalho: isRetrabalho
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Erro ao atualizar retrabalho');
+                    }
+
+                    const result = await response.json();
+                    
+                    mostRecentService.retrabalho = isRetrabalho;
+                    
+                    saveButton.textContent = 'Salvo!';
+                    saveButton.style.background = '#10b981';
+                    
+                    setTimeout(() => {
+                        saveButton.disabled = false;
+                        saveButton.textContent = 'Salvar Retrabalho';
+                        saveButton.style.background = '#0ea5e9';
+                    }, 1500);
+                    
+                } catch (error) {
+                    saveButton.textContent = 'Erro!';
+                    saveButton.style.background = '#ef4444';
+                    
+                    setTimeout(() => {
+                        saveButton.disabled = false;
+                        saveButton.textContent = 'Salvar Retrabalho';
+                        saveButton.style.background = '#0ea5e9';
+                    }, 1500);
+                }
+            }
+        });
+    }
+
     popupOverlay.addEventListener('click', (e) => {
         if (e.target === popupOverlay) {
             popupOverlay.remove();
         }
     });
 
-    // Fecha o popup com a tecla ESC
     const handleEscKey = (e) => {
         if (e.key === 'Escape') {
             popupOverlay.remove();
@@ -967,7 +1076,6 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
     document.addEventListener('keydown', handleEscKey);
 }
 
-// Adiciona estilos CSS para melhorar a aparência das linhas clicáveis
 const style = document.createElement('style');
 style.textContent = `
     .child-row:hover {

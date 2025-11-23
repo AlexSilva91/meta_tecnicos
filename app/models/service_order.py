@@ -15,7 +15,8 @@ class ServiceOrder(db.Model):
     os_data_finalizacao = db.Column(db.DateTime, nullable=True)
     os_conteudo = db.Column(db.Text, nullable=False)
     os_servicoprestado = db.Column(db.Text, nullable=False)
-
+    retrabalho = db.Column(db.Boolean, nullable=False, default=True)
+    
     # 🔹 Relacionamento com TypeService
     type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
     type_service = db.relationship("TypeService", backref="service_orders")
@@ -73,11 +74,6 @@ class ServiceOrder(db.Model):
     @classmethod
     def get_by_os_id(cls, os_id):
         """Busca uma OS pelo os_id."""
-        return cls.query.filter_by(os_id=os_id).first()
-    
-    @classmethod
-    def get_by_os_id(cls, os_id: str):
-        """Busca ServiceOrder pelo ID da OS."""
         return cls.query.filter_by(os_id=os_id).first()
     
     @classmethod
@@ -159,6 +155,25 @@ class ServiceOrder(db.Model):
         
         db.session.commit()
         return order
+
+    @classmethod
+    def update_retrabalho(cls, order_id: int, retrabalho: bool):
+        """
+        Atualiza o campo 'retrabalho' de uma ServiceOrder.
+        Retorna o objeto atualizado ou None se não existir.
+        """
+        try:
+            order = cls.query.get(order_id)
+            if not order:
+                return None
+
+            order.retrabalho = bool(retrabalho)
+            db.session.commit()
+            return order
+
+        except Exception:
+            db.session.rollback()
+            return None
 
     @classmethod
     def delete(cls, order_id: int) -> bool:

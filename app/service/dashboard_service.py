@@ -653,8 +653,10 @@ class DashboardService:
 
                 resultado.append({
                     "id": os_item.id,
+                    "data_finalizacao": os_item.os_data_finalizacao,
                     "descricao": os_item.os_conteudo,
-                    "resolucao": os_item.os_servicoprestado
+                    "resolucao": os_item.os_servicoprestado, 
+                    "retrabalho": os_item.retrabalho
                 })
 
             return resultado
@@ -662,6 +664,13 @@ class DashboardService:
         except Exception as e:
             print(f"Erro: {e}")
             return []
+
+    @staticmethod
+    def update_order_service(os_id: int, retrabalho: bool):
+        if not os_id:
+            return
+
+        return ServiceOrder.update_retrabalho(os_id, retrabalho)
 
     @staticmethod
     def get_complete_dashboard_data(month: int = None, year: int = None) -> dict:
