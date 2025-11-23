@@ -33,7 +33,7 @@ class DashboardService:
         ano_atual = now.year
 
         for order in ServiceOrder.list(limit=10000):
-            if order.os_data_agendamento.month == mes_atual and order.os_data_agendamento.year == ano_atual:
+            if order.os_data_finalizacao.month == mes_atual and order.os_data_finalizacao.year == ano_atual:
                 if order.os_tecnicos_auxiliares:
                     with_assist += 1
                 else:
@@ -60,15 +60,15 @@ class DashboardService:
                 count += sum(
                     1 for o in expert.responsible_orders
                     if o.type_service_id == cat.id
-                    and o.os_data_agendamento.month == mes_atual
-                    and o.os_data_agendamento.year == ano_atual
+                    and o.os_data_finalizacao.month == mes_atual
+                    and o.os_data_finalizacao.year == ano_atual
                 )
                 # Auxiliar no mês atual
                 count += sum(
                     1 for o in expert.assistant_orders
                     if o.type_service_id == cat.id
-                    and o.os_data_agendamento.month == mes_atual
-                    and o.os_data_agendamento.year == ano_atual
+                    and o.os_data_finalizacao.month == mes_atual
+                    and o.os_data_finalizacao.year == ano_atual
                 )
                 data.append(count)
             datasets.append({
@@ -91,8 +91,8 @@ class DashboardService:
         all_orders = ServiceOrder.list(limit=10000)
         count = 0
         for order in all_orders:
-            if (order.os_data_agendamento.month == month and 
-                order.os_data_agendamento.year == year):
+            if (order.os_data_finalizacao.month == month and 
+                order.os_data_finalizacao.year == year):
                 count += 1
         return count
 
@@ -121,8 +121,8 @@ class DashboardService:
 
         def process_order(expert_name, order):
             if (
-                order.os_data_agendamento.month == month and
-                order.os_data_agendamento.year == year
+                order.os_data_finalizacao.month == month and
+                order.os_data_finalizacao.year == year
             ):
                 categoria = order.type_service.name if order.type_service else None
 
@@ -165,8 +165,8 @@ class DashboardService:
         for category in categories:
             for order in all_orders:
                 if (order.type_service_id == category.id and
-                    order.os_data_agendamento.month == month and 
-                    order.os_data_agendamento.year == year):
+                    order.os_data_finalizacao.month == month and 
+                    order.os_data_finalizacao.year == year):
                     data[category.name] += 1
         
         return {
@@ -187,8 +187,8 @@ class DashboardService:
         without_assist = 0
         
         for order in all_orders:
-            if (order.os_data_agendamento.month == month and 
-                order.os_data_agendamento.year == year):
+            if (order.os_data_finalizacao.month == month and 
+                order.os_data_finalizacao.year == year):
                 if order.os_tecnicos_auxiliares:
                     with_assist += 1
                 else:
@@ -217,8 +217,8 @@ class DashboardService:
             help_received_count = 0
             help_received_details = []
             for order in expert.responsible_orders:
-                if (order.os_data_agendamento.month == month and
-                    order.os_data_agendamento.year == year and
+                if (order.os_data_finalizacao.month == month and
+                    order.os_data_finalizacao.year == year and
                     order.os_tecnicos_auxiliares):
 
                     help_received_count += 1
@@ -229,7 +229,7 @@ class DashboardService:
 
                     help_received_details.append({
                         'assistants': assistants,
-                        'date': order.os_data_agendamento.strftime('%Y-%m-%d'),
+                        'date': order.os_data_finalizacao.strftime('%Y-%m-%d'),
                         'category': category_name,
                         'service_id': order.id, 
                         'service_os_id': order.os_id 
@@ -238,8 +238,8 @@ class DashboardService:
             helped_count = 0
             helped_details = []
             for order in expert.assistant_orders:
-                if (order.os_data_agendamento.month == month and
-                    order.os_data_agendamento.year == year):
+                if (order.os_data_finalizacao.month == month and
+                    order.os_data_finalizacao.year == year):
 
                     main_expert = Expert.get_by_id(order.os_tecnico_responsavel)
                     if main_expert and main_expert.nome != expert.nome:
@@ -250,7 +250,7 @@ class DashboardService:
 
                         helped_details.append({
                             'main_expert': main_expert.nome,
-                            'date': order.os_data_agendamento.strftime('%Y-%m-%d'),
+                            'date': order.os_data_finalizacao.strftime('%Y-%m-%d'),
                             'category': category_name,
                             'service_id': order.id,
                             'service_os_id': order.os_id 
@@ -338,8 +338,8 @@ class DashboardService:
         data = defaultdict(int)
         
         for order in all_orders:
-            if (order.os_data_agendamento.month == month and 
-                order.os_data_agendamento.year == year and
+            if (order.os_data_finalizacao.month == month and 
+                order.os_data_finalizacao.year == year and
                 order.os_tecnicos_auxiliares):
                 
                 category = next((cat for cat in categories if cat.id == order.type_service_id), None)
@@ -370,27 +370,27 @@ class DashboardService:
         current_month_orders = [
             order for order in all_orders 
             if (
-                order.os_data_agendamento.month == month and 
-                order.os_data_agendamento.year == year
+                order.os_data_finalizacao.month == month and 
+                order.os_data_finalizacao.year == year
             )
         ]
         
         for current_order in current_month_orders:
             customer_id = current_order.customer_id
             
-            date_limit = current_order.os_data_agendamento - timedelta(days=60)
+            date_limit = current_order.os_data_finalizacao - timedelta(days=60)
 
             previous_orders = [
                 order for order in all_orders 
                 if (
                     order.customer_id == customer_id and
-                    order.os_data_agendamento < current_order.os_data_agendamento and
-                    order.os_data_agendamento >= date_limit
+                    order.os_data_finalizacao < current_order.os_data_finalizacao and
+                    order.os_data_finalizacao >= date_limit
                 )
             ]
             
             for prev_order in previous_orders:
-                days_between = (current_order.os_data_agendamento - prev_order.os_data_agendamento).days
+                days_between = (current_order.os_data_finalizacao - prev_order.os_data_finalizacao).days
                 
                 if days_between > 30:
                     continue
@@ -427,8 +427,8 @@ class DashboardService:
                     'contract': contract_id,
                     'category': current_category,
                     'experts': list(all_experts),
-                    'firstServiceDate': prev_order.os_data_agendamento.strftime('%Y-%m-%d'),
-                    'secondServiceDate': current_order.os_data_agendamento.strftime('%Y-%m-%d'),
+                    'firstServiceDate': prev_order.os_data_finalizacao.strftime('%Y-%m-%d'),
+                    'secondServiceDate': current_order.os_data_finalizacao.strftime('%Y-%m-%d'),
                     'daysBetween': days_between,
                     'firstServiceId': prev_order.id,
                     'secondServiceId': current_order.id

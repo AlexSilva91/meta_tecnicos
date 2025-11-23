@@ -182,7 +182,7 @@ if __name__ == "__main__":
     
     app = create_app()
     with app.app_context():
-        for i in range(30):
+        for i in range(90):
             dia = datetime.today() - timedelta(days=i)
             data_str = dia.strftime("%Y-%m-%d")
             print(f"\n📅 Processando OS para a data: {data_str}")
