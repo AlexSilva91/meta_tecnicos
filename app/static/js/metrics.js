@@ -307,7 +307,9 @@ function updateCharts(data) {
             labels: sortedData.labels,
             data: sortedData.data,
             notRealized: sortedData.not_realized || [],
-            detailedData: data.servicesByExpertDetailed
+            retrabalho: sortedData.retrabalho || [],
+            detailedData: data.servicesByExpertDetailed,
+            detailed_retrabalho: data.servicesByExpert.detailed_retrabalho
         };
         
         const datasets = [
@@ -333,7 +335,22 @@ function updateCharts(data) {
                 borderSkipped: false,
             });
         }
-        
+        if (
+            sortedData.retrabalho &&
+            Array.isArray(sortedData.retrabalho) &&
+            sortedData.retrabalho.some(val => val > 0)
+        ) {
+            datasets.push({
+                label: 'Retrabalho',
+                data: sortedData.retrabalho,
+                backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                borderColor: 'rgba(249, 115, 22, 1)',
+                borderWidth: 1,
+                borderRadius: window.innerWidth < 480 ? 2 : (window.innerWidth < 768 ? 3 : 4),
+                borderSkipped: false,
+            });
+        }
+
         charts.servicesByExpert = new Chart(servicesByExpertCtx, {
             type: 'bar',
             data: {
@@ -357,19 +374,42 @@ function updateCharts(data) {
                             },
                             afterBody: function(tooltipItems) {
                                 const expertIndex = tooltipItems[0].dataIndex;
-                                const expertName = chartData.labels[expertIndex]; 
-                                
-                                if (chartData.detailedData && 
-                                    chartData.detailedData.detailed && 
-                                    chartData.detailedData.detailed[expertName]) {
-                                    
+                                const datasetLabel = tooltipItems[0].dataset.label;
+                                const expertName = chartData.labels[expertIndex];
+
+                                // Tooltip ESPECÍFICO PARA RETRABALHO
+                                if (datasetLabel === 'Retrabalho') {
+                                    const retrabalhos = chartData.detailed_retrabalho?.[expertName];
+
+                                    if (retrabalhos && retrabalhos.length > 0) {
+                                        const lines = ['', 'Detalhes do Retrabalho:'];
+
+                                        retrabalhos.forEach(item => {
+                                            lines.push(`• Categoria: ${item.category}`);
+                                            lines.push(`  service_id: ${item.service_id}`);
+                                            lines.push(`  service_os_id: ${item.service_os_id}`);
+                                            lines.push('');
+                                        });
+
+                                        return lines;
+                                    }
+
+                                    return ['\nNenhum retrabalho detalhado disponível'];
+                                }
+
+                                // Tooltip padrão para outras métricas
+                                if (
+                                    chartData.detailedData &&
+                                    chartData.detailedData.detailed &&
+                                    chartData.detailedData.detailed[expertName]
+                                ) {
                                     const expertData = chartData.detailedData.detailed[expertName];
                                     const tooltipLines = ['', '📊 Serviços por categoria:'];
                                     
                                     expertData.categories.forEach(cat => {
                                         tooltipLines.push(`• ${cat.name}: ${cat.count}`);
                                     });
-                                    
+
                                     if (expertData.not_performed && expertData.not_performed > 0) {
                                         const totalServices = expertData.total + expertData.not_performed;
                                         const notPerformedPercentage = Math.round((expertData.not_performed / totalServices) * 100);
@@ -383,14 +423,14 @@ function updateCharts(data) {
                                             });
                                         }
                                     }
-                                    
+
                                     return tooltipLines;
                                 }
-                                
+
                                 return ['\nNenhum detalhe disponível'];
                             },
-                            footer: function(tooltipItems) {
-                                return `\n💡 **Clique para ver detalhes completos**`;
+                            footer: function() {
+                                return `\nClique para ver detalhes completos`;
                             }
                         }
                     }
@@ -900,7 +940,7 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                 ">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
                         <h4 style="margin: 0; color: #0ea5e9; font-size: 1.1rem;">
-                            Serviço ID: ${detail.id || 'N/A'}
+                            Serviço ID: ${detail.id|| 'N/A'}
                         </h4>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             ${isMostRecent ? `
@@ -963,7 +1003,7 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                     ">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e2e8f0; font-size: 0.9rem;">
                             <input type="checkbox" id="retrabalhoCheckbox" 
-                                   ${detail.retrabalho ? 'checked' : ''}
+                                   ${detail.retrabalho === true ? 'checked' : ''} 
                                    style="margin: 0; cursor: pointer;">
                             Marcar como retrabalho
                         </label>
@@ -1608,16 +1648,17 @@ function showExpertServicesDetails(expertName, data) {
     if (!data.servicesByExpertDetailed || 
         !data.servicesByExpertDetailed.detailed || 
         !data.servicesByExpertDetailed.detailed[expertName]) {
-        alert(`Nenhum dado detalhado disponível para ${expertName}`);
         return;
     }
     
     const expertData = data.servicesByExpertDetailed.detailed[expertName];
     const totalServices = expertData.total;
     const notPerformed = expertData.not_performed || 0;
-    
+    const retrabalhoTotal = expertData.retrabalho ? expertData.retrabalho.length : 0;
+
     const totalAllServices = totalServices + notPerformed;
     const notPerformedPercentage = totalAllServices > 0 ? Math.round((notPerformed / totalAllServices) * 100) : 0;
+    const retrabalhoPercentage = totalAllServices > 0 ? Math.round((retrabalhoTotal / totalAllServices) * 100) : 0;
     
     const width = window.innerWidth;
     const isMobile = width < 768;
@@ -1627,7 +1668,7 @@ function showExpertServicesDetails(expertName, data) {
             <h3 style="color: #0ea5e9; margin-bottom: 1rem; font-size: ${isMobile ? '1.1rem' : '1.3rem'};">Detalhes de Serviços: ${expertName}</h3>
             
             <!-- Cards de Resumo -->
-            <div style="display: grid; grid-template-columns: ${isMobile ? '1fr' : '1fr 1fr'}; gap: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: ${isMobile ? '1fr' : '1fr 1fr 1fr'}; gap: 0.75rem; margin-bottom: 1.5rem;">
                 <div style="background: rgba(14, 165, 233, 0.1); padding: 0.75rem; border-radius: 6px; border-left: 4px solid #0ea5e9;">
                     <div style="color: #0ea5e9; font-weight: bold; font-size: ${isMobile ? '0.8rem' : '0.9rem'};">Serviços Realizados</div>
                     <div style="color: #0ea5e9; font-size: ${isMobile ? '1.2rem' : '1.5rem'}; font-weight: bold;">${totalServices}</div>
@@ -1642,9 +1683,17 @@ function showExpertServicesDetails(expertName, data) {
                         ${notPerformedPercentage}% do total
                     </div>
                 </div>
+                <div style="background: rgba(251, 191, 36, 0.1); padding: 0.75rem; border-radius: 6px; border-left: 4px solid #fbbf24;">
+                    <div style="color: #fbbf24; font-weight: bold; font-size: ${isMobile ? '0.8rem' : '0.9rem'};">Retrabalho</div>
+                    <div style="color: #fbbf24; font-size: ${isMobile ? '1.2rem' : '1.5rem'}; font-weight: bold;">${retrabalhoTotal}</div>
+                    <div style="color: #fbbf24; font-size: 0.8rem; margin-top: 0.25rem;">
+                        ${retrabalhoPercentage}% do total
+                    </div>
+                </div>
             </div>
     `;
-    
+
+    // Categorias realizadas
     if (expertData.categories && expertData.categories.length > 0) {
         detailsHTML += `
             <h4 style="color: #22c55e; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">📈 Serviços Realizados por Categoria:</h4>
@@ -1665,94 +1714,62 @@ function showExpertServicesDetails(expertName, data) {
         
         detailsHTML += `</div>`;
     }
-    
+
+    // Serviços não realizados
     if (notPerformed > 0) {
-        detailsHTML += `
-            <h4 style="color: #ef4444; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">❌ Serviços Não Realizados por Categoria:</h4>
-            <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
-        `;
-        
-        if (expertData.not_performed_categories && expertData.not_performed_categories.length > 0) {
-            expertData.not_performed_categories.forEach(cat => {
-                detailsHTML += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(239, 68, 68, 0.1); border-radius: 4px; border-left: 3px solid #ef4444;">
-                        <span style="color: #ef4444;">${cat.name}</span>
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="color: #ef4444; font-weight: bold;">${cat.count}</span>
-                            <span style="color: #fca5a5; font-size: 0.8rem;">(${cat.percentage}%)</span>
-                        </div>
-                    </div>
-                `;
-            });
-        } else {
-            const blockedCategories = ["RETIRADA SEM SUCESSO", "REAGENDAMENTO", "LOCAL FECHADO"];
-            const countPerCategory = Math.round(notPerformed / blockedCategories.length);
-            const remainder = notPerformed - (countPerCategory * blockedCategories.length);
-            
-            blockedCategories.forEach((category, index) => {
-                let count = countPerCategory;
-                if (index === 0) count += remainder;
-                
-                const categoryPercentage = Math.round((count / notPerformed) * 100);
-                
-                detailsHTML += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(239, 68, 68, 0.1); border-radius: 4px; border-left: 3px solid #ef4444;">
-                        <span style="color: #ef4444;">${category}</span>
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="color: #ef4444; font-weight: bold;">${count}</span>
-                            <span style="color: #fca5a5; font-size: 0.8rem;">(${categoryPercentage}%)</span>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        detailsHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.2); border-radius: 4px; border: 1px solid #ef4444;">
-                    <strong style="color: #ef4444;">Total de serviços não realizados</strong>
+        detailsHTML += `<h4 style="color: #ef4444; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">❌ Serviços Não Realizados por Categoria:</h4>`;
+        detailsHTML += `<div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">`;
+
+        const blockedCategories = ["RETIRADA SEM SUCESSO", "REAGENDAMENTO", "LOCAL FECHADO"];
+        const countPerCategory = Math.round(notPerformed / blockedCategories.length);
+        const remainder = notPerformed - (countPerCategory * blockedCategories.length);
+
+        blockedCategories.forEach((category, index) => {
+            let count = countPerCategory;
+            if (index === 0) count += remainder;
+            const categoryPercentage = Math.round((count / notPerformed) * 100);
+
+            detailsHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; margin: 0.25rem 0; background: rgba(239, 68, 68, 0.1); border-radius: 4px; border-left: 3px solid #ef4444;">
+                    <span style="color: #ef4444;">${category}</span>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <strong style="color: #ef4444;">${notPerformed}</strong>
-                        <span style="color: #fca5a5; font-size: 0.9rem;">(${notPerformedPercentage}% do total)</span>
+                        <span style="color: #ef4444; font-weight: bold;">${count}</span>
+                        <span style="color: #fca5a5; font-size: 0.8rem;">(${categoryPercentage}%)</span>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        });
+
+        detailsHTML += `</div>`;
     }
-    
-    detailsHTML += `</div>`;
-    
+
+    // Retrabalho detalhado
+    if (expertData.retrabalho && expertData.retrabalho.length > 0) {
+        detailsHTML += `
+            <h4 style="color: #fbbf24; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">🔄 Retrabalho Detalhado:</h4>
+            <div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">
+        `;
+
+        expertData.retrabalho.forEach(item => {
+            detailsHTML += `
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem; margin: 0.25rem 0; background: rgba(251, 191, 36, 0.1); border-radius: 4px; border-left: 3px solid #fbbf24;">
+                    <span>${item.category}</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span>ID Serviço: ${item.service_id}</span>
+                        <span>ID OS: ${item.service_os_id}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        detailsHTML += `</div>`;
+    }
+
+    detailsHTML += `</div>`; // fecha container principal
+
+    // Exibição modal ou alerta mobile
     if (isMobile) {
-        let mobileMessage = `Detalhes de ${expertName}\n\n`;
-        mobileMessage += `✅ Realizados: ${totalServices} serviços\n`;
-        mobileMessage += `❌ Não realizados: ${notPerformed} serviços\n`;
-        mobileMessage += `📊 Total: ${totalAllServices} serviços\n\n`;
-        
-        if (expertData.categories && expertData.categories.length > 0) {
-            mobileMessage += `📈 Serviços realizados:\n`;
-            expertData.categories.forEach(cat => {
-                mobileMessage += `• ${cat.name}: ${cat.count} (${cat.percentage}%)\n`;
-            });
-        }
-        
-        if (notPerformed > 0) {
-            mobileMessage += `\n❌ Serviços não realizados:\n`;
-            const blockedCategories = ["RETIRADA SEM SUCESSO", "REAGENDAMENTO", "LOCAL FECHADO"];
-            const countPerCategory = Math.round(notPerformed / blockedCategories.length);
-            const remainder = notPerformed - (countPerCategory * blockedCategories.length);
-            
-            blockedCategories.forEach((category, index) => {
-                let count = countPerCategory;
-                if (index === 0) count += remainder;
-                const categoryPercentage = Math.round((count / notPerformed) * 100);
-                mobileMessage += `• ${category}: ${count} (${categoryPercentage}%)\n`;
-            });
-            
-            mobileMessage += `\n📊 Total não realizados: ${notPerformed} (${notPerformedPercentage}%)\n`;
-        } else {
-            mobileMessage += `\n🎉 Todos os serviços foram realizados!\n`;
-        }
-        
-        alert(mobileMessage);
+        alert(`Detalhes de ${expertName}:\n✅ Realizados: ${totalServices}\n❌ Não realizados: ${notPerformed}\n🔄 Retrabalho: ${retrabalhoTotal}`);
     } else {
         const modal = document.createElement('div');
         modal.style.cssText = `
@@ -1784,40 +1801,44 @@ function showExpertServicesDetails(expertName, data) {
         document.body.appendChild(modal);
         
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
+            if (e.target === modal) modal.remove();
         });
     }
 }
 
+
 function sortServicesByExpertData(servicesByExpertData) {
-    if (!servicesByExpertData || !servicesByExpertData.labels || !servicesByExpertData.data) {
+    if (
+        !servicesByExpertData ||
+        !servicesByExpertData.labels ||
+        !servicesByExpertData.data
+    ) {
         return servicesByExpertData;
     }
+
     const dataForSorting = servicesByExpertData.labels.map((label, index) => ({
         originalLabel: label,
         data: servicesByExpertData.data[index],
-        not_realized: servicesByExpertData.not_realized ? servicesByExpertData.not_realized[index] : 0,
-        index: index
+        not_realized: servicesByExpertData.not_realized
+            ? servicesByExpertData.not_realized[index]
+            : 0,
+        retrabalho: servicesByExpertData.retrabalho
+            ? servicesByExpertData.retrabalho[index]
+            : 0,
+        index
     }));
-    
-    dataForSorting.sort((a, b) => {
-        const labelA = (a.originalLabel || '').toLowerCase();
-        const labelB = (b.originalLabel || '').toLowerCase();
-        return labelA.localeCompare(labelB);
-    });
-    
-    const sortedLabels = dataForSorting.map(item => item.originalLabel);
-    const sortedData = dataForSorting.map(item => item.data);
-    const sortedNotRealized = dataForSorting.map(item => item.not_realized);
-    
-    const result = {
-        labels: sortedLabels,
-        data: sortedData,
-        not_realized: sortedNotRealized
+
+    dataForSorting.sort((a, b) =>
+        (a.originalLabel || "").toLowerCase()
+            .localeCompare((b.originalLabel || "").toLowerCase())
+    );
+
+    return {
+        labels: dataForSorting.map(item => item.originalLabel),
+        data: dataForSorting.map(item => item.data),
+        not_realized: dataForSorting.map(item => item.not_realized),
+        retrabalho: dataForSorting.map(item => item.retrabalho)
     };
-    return result;
 }
 
 function sortAssistanceNetworkData(assistanceNetworkData) {

@@ -310,7 +310,7 @@ def order_services():
         id_order_first=id_order_first,
         id_order_secund=id_order_secund
     )
-
+    
     return jsonify(resultado), 200
 
 @master_bp.route('/api/update-order-service', methods=["POST"])

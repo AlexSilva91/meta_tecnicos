@@ -431,8 +431,8 @@ class DashboardService:
                     'firstServiceDate': prev_order.os_data_finalizacao.strftime('%Y-%m-%d'),
                     'secondServiceDate': current_order.os_data_finalizacao.strftime('%Y-%m-%d'),
                     'daysBetween': days_between,
-                    'firstServiceId': prev_order.id,
-                    'secondServiceId': current_order.id
+                    'firstServiceId': prev_order.os_id,
+                    'secondServiceId': current_order.os_id
                 })
         
         grouped = {}
@@ -509,121 +509,153 @@ class DashboardService:
     @staticmethod
     def combine_services_with_assistance(assistance_data: dict, services_data: dict) -> dict:
         """
-        Retorna no MESMO FORMATO de get_services_by_expert(), preservando not_realized:
-            {
-                'labels': [...],
-                'data': [...],
-                'not_realized': [...]
-            }
-
-        Regra:
-            - Cada ajuda prestada soma +1 serviço ao técnico.
+        Retorna os dados combinados no mesmo formato de get_services_by_expert(),
+        adicionando:
+            - retrabalho: totais por técnico
+            - detailed_retrabalho: detalhes com contrato, categoria e serviços
         """
 
         combined = defaultdict(int)
         not_realized_dict = {}
-        
+        retrabalho_dict = defaultdict(int)
+        retrabalho_details = defaultdict(list)
+
         for i, expert in enumerate(services_data['labels']):
             combined[expert] += services_data['data'][i]
-            if 'not_realized' in services_data and i < len(services_data['not_realized']):
-                not_realized_dict[expert] = services_data['not_realized'][i]
-            else:
-                not_realized_dict[expert] = 0
-
+            not_realized_dict[expert] = (
+                services_data['not_realized'][i]
+                if 'not_realized' in services_data and i < len(services_data['not_realized'])
+                else 0
+            )
+            if 'retrabalho' in services_data and i < len(services_data.get('retrabalho', [])):
+                retrabalho_dict[expert] = services_data['retrabalho'][i]
+        
         for item in assistance_data['detailed_data']:
             expert_name = item['expert']
-
             helped_total = sum(h['count'] for h in item['helped_others'])
             combined[expert_name] += helped_total
 
+        experts = Expert.list_active(limit=10000)
+
+        for expert in experts:
+            for order in expert.responsible_orders + expert.assistant_orders:
+                if getattr(order, "retrabalho", False):
+                    retrabalho_dict[expert.nome] += 1
+
+                    category = TypeService.get_by_id(order.type_service_id)
+                    category_name = category.name if category else "Desconhecida"
+
+                    retrabalho_details[expert.nome].append({
+                        "category": category_name,
+                        "service_id": order.id,
+                        "service_os_id": order.os_id
+                    })
+
         labels = list(combined.keys())
-        data = list(combined.values())
-        not_realized = [not_realized_dict.get(label, 0) for label in labels]
 
         result = {
             'labels': labels,
-            'data': data,
-            'not_realized': not_realized
+            'data': [combined[l] for l in labels],
+            'not_realized': [not_realized_dict.get(l, 0) for l in labels],
+            'retrabalho': [retrabalho_dict.get(l, 0) for l in labels],
+            'detailed_retrabalho': {l: retrabalho_details.get(l, []) for l in labels}
         }
+       
         return result
 
     @staticmethod
     def merge_services_with_assistance(services_details: dict, assistance: dict) -> dict:
+        """
+        Unifica serviços e assistência mantendo o mesmo padrão de saída,
+        incluindo cálculo interno de retrabalho (total e detalhes) por técnico.
+        """
 
         final_result = {
             "summary": {},
             "detailed": {}
         }
 
+        # Mapas auxiliares
         category_map = defaultdict(lambda: defaultdict(int))
         not_performed_map = defaultdict(int)
         not_performed_categories_map = defaultdict(lambda: defaultdict(int))
 
-        for expert_name, detail in services_details["detailed"].items():
-            for cat in detail["categories"]:
+        # Dados de retrabalho
+        retrabalho_count = defaultdict(int)
+        retrabalho_details = defaultdict(list)
+
+        # Processa categorias de serviços realizados
+        for expert_name, detail in services_details.get("detailed", {}).items():
+            for cat in detail.get("categories", []):
                 name = cat["name"]
                 count = cat["count"]
-
                 if name in blocked_categories:
                     not_performed_map[expert_name] += count
-                    not_performed_categories_map[expert_name][name] += count 
-                    continue
+                    not_performed_categories_map[expert_name][name] += count
+                else:
+                    category_map[expert_name][name] += count
 
-                category_map[expert_name][name] += count
-
-        for item in assistance["detailed_data"]:
+        # Processa assistência
+        for item in assistance.get("detailed_data", []):
             expert_name = item["expert"]
-
-            for help_block in item["helped_others"]:
-                for entry in help_block["details"]:
-                    category = entry["category"]
-
+            for help_block in item.get("helped_others", []):
+                for entry in help_block.get("details", []):
+                    category = entry.get("category", "Desconhecida")
                     if category in blocked_categories:
                         not_performed_map[expert_name] += 1
-                        not_performed_categories_map[expert_name][category] += 1  
-                        continue
+                        not_performed_categories_map[expert_name][category] += 1
+                    else:
+                        category_map[expert_name][category] += 1
 
-                    category_map[expert_name][category] += 1
+        # Calcula retrabalho internamente a partir das ordens dos experts
+        experts = Expert.list_active(limit=10000)
+        for expert in experts:
+            for order in expert.responsible_orders + expert.assistant_orders:
+                if getattr(order, "retrabalho", False):
+                    retrabalho_count[expert.nome] += 1
+                    category = TypeService.get_by_id(order.type_service_id)
+                    category_name = category.name if category else "Desconhecida"
+                    retrabalho_details[expert.nome].append({
+                        "category": category_name,
+                        "service_id": order.id,
+                        "service_os_id": order.os_id
+                    })
 
-        for expert_name, cat_data in category_map.items():
+        # Monta o resultado final
+        for expert_name in set(list(category_map.keys()) + list(retrabalho_count.keys()) + list(not_performed_map.keys())):
+            cat_data = category_map.get(expert_name, {})
             total = sum(count for cat, count in cat_data.items() if cat not in blocked_categories)
 
+            # Summary
             final_result["summary"][expert_name] = {
                 "performed": total,
-                "not_performed": not_performed_map.get(expert_name, 0)
+                "not_performed": not_performed_map.get(expert_name, 0),
+                "retrabalho_total": retrabalho_count.get(expert_name, 0)
             }
 
-            categories_list = []
-            for cat_name, count in cat_data.items():
-                if cat_name in blocked_categories:
-                    continue
-
-                percentage = round((count / total) * 100, 1) if total > 0 else 0
-
-                categories_list.append({
-                    "name": cat_name,
-                    "count": count,
-                    "percentage": percentage
-                })
-
+            # Detailed
+            categories_list = [
+                {"name": cat_name, "count": count,
+                 "percentage": round((count / total) * 100, 1) if total > 0 else 0}
+                for cat_name, count in cat_data.items() if cat_name not in blocked_categories
+            ]
             categories_list.sort(key=lambda x: x["count"], reverse=True)
 
-            not_performed_categories = []
-            if expert_name in not_performed_categories_map:
-                for cat_name, count in not_performed_categories_map[expert_name].items():
-                    not_performed_categories.append({
-                        "name": cat_name,
-                        "count": count,
-                        "percentage": round((count / not_performed_map.get(expert_name, 1)) * 100, 1) if not_performed_map.get(expert_name, 0) > 0 else 0
-                    })
+            not_perf_list = [
+                {"name": cat_name, "count": count,
+                 "percentage": round((count / not_performed_map.get(expert_name, 1)) * 100, 1)
+                 if not_performed_map.get(expert_name, 0) > 0 else 0}
+                for cat_name, count in not_performed_categories_map.get(expert_name, {}).items()
+            ]
 
             final_result["detailed"][expert_name] = {
                 "total": total,
                 "not_performed": not_performed_map.get(expert_name, 0),
                 "categories": categories_list,
-                "not_performed_categories": not_performed_categories 
+                "not_performed_categories": not_perf_list,
+                "retrabalho": retrabalho_details.get(expert_name, [])
             }
-
+       
         return final_result
 
     @staticmethod
@@ -648,17 +680,17 @@ class DashboardService:
             ids_filtrar = {i for i in ids_filtrar if i is not None} 
 
             for os_item in orders_services:
-                if ids_filtrar and os_item.id not in ids_filtrar:
+                if ids_filtrar and os_item.os_id not in ids_filtrar:
                     continue
 
                 resultado.append({
-                    "id": os_item.id,
+                    "id": os_item.os_id,
                     "data_finalizacao": os_item.os_data_finalizacao,
                     "descricao": os_item.os_conteudo,
                     "resolucao": os_item.os_servicoprestado, 
                     "retrabalho": os_item.retrabalho
                 })
-
+            
             return resultado
 
         except Exception as e:

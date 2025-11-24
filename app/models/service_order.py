@@ -17,11 +17,9 @@ class ServiceOrder(db.Model):
     os_servicoprestado = db.Column(db.Text, nullable=False)
     retrabalho = db.Column(db.Boolean, nullable=False, default=False)
     
-    # 🔹 Relacionamento com TypeService
     type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
     type_service = db.relationship("TypeService", backref="service_orders")
     
-    # Foreign keys
     os_tecnico_responsavel = db.Column(db.Integer, db.ForeignKey('experts.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
 
@@ -46,7 +44,7 @@ class ServiceOrder(db.Model):
             os_servicoprestado=os_servicoprestado,
             os_tecnico_responsavel=os_tecnico_responsavel,
             customer_id=customer_id,
-            type_service_id=type_service_id  # 🔹 adicionando TypeService
+            type_service_id=type_service_id
         )
         db.session.add(order)
         
