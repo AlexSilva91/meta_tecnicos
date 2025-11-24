@@ -15,7 +15,7 @@ class ServiceOrder(db.Model):
     os_data_finalizacao = db.Column(db.DateTime, nullable=True)
     os_conteudo = db.Column(db.Text, nullable=False)
     os_servicoprestado = db.Column(db.Text, nullable=False)
-    retrabalho = db.Column(db.Boolean, nullable=False, default=True)
+    retrabalho = db.Column(db.Boolean, nullable=False, default=False)
     
     # 🔹 Relacionamento com TypeService
     type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
