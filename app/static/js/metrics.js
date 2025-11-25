@@ -1503,6 +1503,11 @@ if (typeof bootstrap !== 'undefined') {
     });
 }
 
+function abrirOS(osId) {
+    const url = `https://ourinet.sgplocal.com.br/admin/atendimento/ocorrencia/os/${osId}/edit/`;
+    window.open(url, '_blank');
+}
+
 function showExpertDetails(expertData) {
     const width = window.innerWidth;
     const isMobile = width < 768;
@@ -1526,7 +1531,12 @@ function showExpertDetails(expertData) {
             
             help.details.forEach(detail => {
                 detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
-                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category} - 🆔 OS: ${detail.service_os_id}
+                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category} - 🆔 OS: <span 
+                        style="color: #0ea5e9; cursor: pointer; text-decoration: underline;" 
+                        onclick="abrirOS('${detail.service_os_id}')"
+                    >
+                        ${detail.service_os_id}
+                    </span>
                 </div>`;
             });
             
@@ -1559,7 +1569,12 @@ function showExpertDetails(expertData) {
             
             helper.details.forEach(detail => {
                 detailsHTML += `<div style="font-size: 0.8rem; color: #64748b; margin-left: 1rem; margin-top: 0.25rem;">
-                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category} - 🆔 OS: ${detail.service_os_id}
+                    📅 ${formatDateBR(detail.date)} - 🏷️ ${detail.category} - 🆔 OS: <span 
+                        style="color: #0ea5e9; cursor: pointer; text-decoration: underline;" 
+                        onclick="abrirOS('${detail.service_os_id}')"
+                    >
+                        ${detail.service_os_id}
+                    </span>
                 </div>`;
             });
             
@@ -1693,7 +1708,6 @@ function showExpertServicesDetails(expertName, data) {
             </div>
     `;
 
-    // Categorias realizadas
     if (expertData.categories && expertData.categories.length > 0) {
         detailsHTML += `
             <h4 style="color: #22c55e; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">📈 Serviços Realizados por Categoria:</h4>
@@ -1715,7 +1729,6 @@ function showExpertServicesDetails(expertName, data) {
         detailsHTML += `</div>`;
     }
 
-    // Serviços não realizados
     if (notPerformed > 0) {
         detailsHTML += `<h4 style="color: #ef4444; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">❌ Serviços Não Realizados por Categoria:</h4>`;
         detailsHTML += `<div style="font-size: ${isMobile ? '0.8rem' : '0.9rem'};">`;
@@ -1743,7 +1756,6 @@ function showExpertServicesDetails(expertName, data) {
         detailsHTML += `</div>`;
     }
 
-    // Retrabalho detalhado
     if (expertData.retrabalho && expertData.retrabalho.length > 0) {
         detailsHTML += `
             <h4 style="color: #fbbf24; margin-bottom: 0.75rem; font-size: ${isMobile ? '0.9rem' : '1.1rem'};">🔄 Retrabalho Detalhado:</h4>
@@ -1756,7 +1768,9 @@ function showExpertServicesDetails(expertName, data) {
                     <span>${item.category}</span>
                     <div style="display: flex; gap: 0.5rem;">
                         <span>ID Serviço: ${item.service_id}</span>
-                        <span>ID OS: ${item.service_os_id}</span>
+                        <span>ID OS: <span 
+                            style="color:#0ea5e9;cursor:pointer;text-decoration:underline;"
+                            onclick="abrirOS('${item.service_os_id}')"> ${item.service_os_id}</span>
                     </div>
                 </div>
             `;
@@ -1765,9 +1779,8 @@ function showExpertServicesDetails(expertName, data) {
         detailsHTML += `</div>`;
     }
 
-    detailsHTML += `</div>`; // fecha container principal
+    detailsHTML += `</div>`; 
 
-    // Exibição modal ou alerta mobile
     if (isMobile) {
         alert(`Detalhes de ${expertName}:\n✅ Realizados: ${totalServices}\n❌ Não realizados: ${notPerformed}\n🔄 Retrabalho: ${retrabalhoTotal}`);
     } else {
