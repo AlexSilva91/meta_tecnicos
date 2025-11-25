@@ -129,6 +129,28 @@ class ServiceOrder(db.Model):
 
         return result
 
+    @staticmethod
+    def get_retrabalho_by_interval(expert_id: int, start_date: datetime, end_date: datetime):
+        """
+        Retorna retrabalhos dentro de um intervalo de datas real (>= start e <= end),
+        considerando apenas o técnico responsável.
+        """
+        if not expert_id or not start_date or not end_date:
+            return []
+
+        query = (
+            ServiceOrder.query
+                .filter(ServiceOrder.os_tecnico_responsavel == expert_id)
+                .filter(ServiceOrder.retrabalho.is_(True))
+                .filter(ServiceOrder.os_data_finalizacao >= start_date)
+                .filter(ServiceOrder.os_data_finalizacao <= end_date)
+                .order_by(ServiceOrder.os_data_finalizacao.asc())
+        )
+
+        result = query.all()
+       
+        return result
+
     @classmethod
     def update(cls, order_id: int, **kwargs):
         """Atualiza uma ServiceOrder."""

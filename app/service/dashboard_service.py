@@ -568,7 +568,15 @@ class DashboardService:
         }
 
     @staticmethod
-    def merge_services_with_assistance(services_details: dict) -> dict:
+    def merge_services_with_assistance(services_details: dict, month: int, year: int) -> dict:
+        from datetime import datetime
+        start_date = datetime(year, month, 1)
+        # Último dia do mês
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+
         final_result = {"summary": {}, "detailed": {}}
 
         category_map = defaultdict(lambda: defaultdict(int))
@@ -578,7 +586,7 @@ class DashboardService:
         retrabalho_count = defaultdict(int)
         retrabalho_details = defaultdict(list)
 
-        # Processa SOMENTE os serviços, sem assistência
+        # Processa SOMENTE os serviços (não mexe no filtro de retrabalho aqui)
         for expert_name, detail in services_details.get("detailed", {}).items():
             for cat in detail.get("categories", []):
                 name = cat["name"]
@@ -590,20 +598,30 @@ class DashboardService:
                 else:
                     category_map[expert_name][name] += count
 
-        # Calcula retrabalho
+        # Recupera retrabalhos DIRETAMENTE DO BANCO usando o método solicitado
         experts = Expert.list_active(limit=10000)
-        for expert in experts:
-            for order in expert.responsible_orders + expert.assistant_orders:
-                if getattr(order, "retrabalho", False):
-                    retrabalho_count[expert.nome] += 1
-                    category = TypeService.get_by_id(order.type_service_id)
-                    category_name = category.name if category else "Desconhecida"
-                    retrabalho_details[expert.nome].append({
-                        "category": category_name,
-                        "service_id": order.id,
-                        "service_os_id": order.os_id
-                    })
 
+        for expert in experts:
+            retrabalhos = ServiceOrder.get_retrabalho_by_interval(
+                expert.id, start_date, end_date
+            )
+            print(retrabalhos)
+            if not retrabalhos:
+                continue
+
+            for order in retrabalhos:
+                retrabalho_count[expert.nome] += 1
+
+                category = TypeService.get_by_id(order.type_service_id)
+                category_name = category.name if category else "Desconhecida"
+
+                retrabalho_details[expert.nome].append({
+                    "category": category_name,
+                    "service_id": order.id,
+                    "service_os_id": order.os_id
+                })
+
+        # Montagem final
         all_experts = sorted(set(
             list(category_map.keys()) +
             list(retrabalho_count.keys()) +
@@ -658,7 +676,9 @@ class DashboardService:
         ordered_summary = dict(sorted(final_result["summary"].items(), key=lambda x: x[0]))
         ordered_detailed = dict(sorted(final_result["detailed"].items(), key=lambda x: x[0]))
 
-        return {"summary": ordered_summary, "detailed": ordered_detailed}
+        result = {"summary": ordered_summary, "detailed": ordered_detailed}
+        print(result)
+        return result
 
     @staticmethod
     def search_datails_order_services(contract: int, id_order_first: int = None, id_order_secund: int = None):
@@ -729,5 +749,5 @@ class DashboardService:
             'assistanceNetwork': DashboardService.get_assistance_network(month, year),
             'assistanceByServiceType': DashboardService.get_assistance_by_service_type(month, year),
             'repeatedServicesList': repeated_services_list,
-            'servicesByExpertDetailed': DashboardService.merge_services_with_assistance(DashboardService.get_services_by_expert_with_details(month, year)) 
+            'servicesByExpertDetailed': DashboardService.merge_services_with_assistance(DashboardService.get_services_by_expert_with_details(month, year), month, year) 
         }
