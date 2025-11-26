@@ -2,10 +2,6 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-# ============================================
-# FORMATTER COLORIDO E BONITO
-# ============================================
-
 class PrettyColorFormatter(logging.Formatter):
     COLORS = {
         "INFO":    ("\033[38;5;39m",  "ℹ"),   # Azul
@@ -28,11 +24,6 @@ class PrettyColorFormatter(logging.Formatter):
             f"{color}{record.getMessage()}{self.RESET}"
         )
 
-
-# =====================================================
-# NÍVEL SUCCESS PERSONALIZADO
-# =====================================================
-
 logging.SUCCESS = 25
 logging.addLevelName(logging.SUCCESS, "SUCCESS")
 
@@ -43,10 +34,6 @@ def success(self, msg, *args, **kwargs):
 logging.Logger.success = success
 
 
-# =====================================================
-# SETUP LOGGING COMPLETO
-# =====================================================
-
 def setup_logging(app):
     log_dir = os.path.join(app.root_path, "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -54,9 +41,6 @@ def setup_logging(app):
 
     file_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
-    # --------------------------
-    # FILE → sem cores
-    # --------------------------
     file_handler = RotatingFileHandler(
         log_file,
         maxBytes=5_000_000,
@@ -65,28 +49,18 @@ def setup_logging(app):
     file_handler.setFormatter(logging.Formatter(file_format))
     file_handler.setLevel(logging.INFO)
 
-    # --------------------------
-    # CONSOLE → com cores
-    # --------------------------
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(PrettyColorFormatter())
     console_handler.setLevel(logging.INFO)
 
-    # --------------------------
-    # ROOT LOGGER
-    # --------------------------
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.handlers = []
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
 
-    # --------------------------
-    # WERKZEUG
-    # --------------------------
     werk = logging.getLogger("werkzeug")
     werk.setLevel(logging.INFO)
     werk.propagate = True
 
-    # Teste visual
     root_logger.success("Logging iniciado com sucesso.")
