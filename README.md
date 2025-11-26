@@ -130,3 +130,82 @@ Também aprofundei meus conhecimentos em **Python, Flask e SQLAlchemy**, aplican
 ## Suporte
 
 Para suporte ou mais informações, mande um email para <alexalves9164@gmail.com>.
+
+```
+meta_tecnicos
+├─ README.md
+├─ app
+│  ├─ __init__.py
+│  ├─ database
+│  │  ├─ __init__.py
+│  │  └─ connection.py
+│  ├─ logging_config.py
+│  ├─ models
+│  │  ├─ __init__.py
+│  │  ├─ association_tables.py
+│  │  ├─ customer.py
+│  │  ├─ expert.py
+│  │  ├─ service_order.py
+│  │  ├─ type_service.py
+│  │  └─ user.py
+│  ├─ routes
+│  │  ├─ __init__.py
+│  │  ├─ admin_route.py
+│  │  ├─ login.py
+│  │  └─ master_route.py
+│  ├─ service
+│  │  ├─ __init__.py
+│  │  ├─ auth_service.py
+│  │  ├─ customer_service.py
+│  │  ├─ dashboard_service.py
+│  │  ├─ expert_service.py
+│  │  ├─ service_order_service.py
+│  │  ├─ type_service_service.py
+│  │  └─ user_service.py
+│  ├─ static
+│  │  ├─ css
+│  │  │  ├─ admin.css
+│  │  │  ├─ style_login.css
+│  │  │  └─ style_metrics.css
+│  │  ├─ img
+│  │  │  └─ logo.png
+│  │  └─ js
+│  │     ├─ admin.js
+│  │     ├─ dashboard_metrics.js
+│  │     ├─ metrics.js
+│  │     ├─ script_login.js
+│  │     └─ users.js
+│  ├─ tasks
+│  │  ├─ __init__.py
+│  │  ├─ daily_os.py
+│  │  └─ helpers.py
+│  ├─ templates
+│  │  ├─ admin
+│  │  │  ├─ base.html
+│  │  │  ├─ dashboard.html
+│  │  │  └─ models
+│  │  │     ├─ customers.html
+│  │  │     ├─ dashboard_metrics.html
+│  │  │     ├─ experts.html
+│  │  │     ├─ serviceorders.html
+│  │  │     ├─ typeservices.html
+│  │  │     └─ users.html
+│  │  ├─ login.html
+│  │  └─ user
+│  │     └─ index.html
+│  └─ utils
+│     ├─ __init__.py
+│     └─ busca_OS.py
+├─ docs
+│  └─ README.md
+├─ requirements.txt
+├─ requiriments.txt
+├─ run.py
+└─ tests
+   ├─ busca_OS.py
+   ├─ busca_OS_Salvar.py
+   ├─ buscar_OS_30D.py
+   ├─ create_default_user.py
+   └─ create_tables.py
+
+```

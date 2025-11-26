@@ -1,6 +1,13 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+import logging
+from flask import g
+from sqlalchemy import event
+from sqlalchemy.orm.attributes import get_history
+from app.models.audit_log import AuditLog
+from app.database.connection import db
+
 
 class PrettyColorFormatter(logging.Formatter):
     COLORS = {
@@ -64,3 +71,94 @@ def setup_logging(app):
     werk.propagate = True
 
     root_logger.success("Logging iniciado com sucesso.")
+
+def register_audit_listeners():
+
+    def is_audit_model(obj):
+        return getattr(obj.__class__, "__tablename__", None) == "audit_logs"
+
+    # ------------------------------------------
+    # BEFORE FLUSH  -> UPDATE + DELETE
+    # ------------------------------------------
+    @event.listens_for(db.session, "before_flush")
+    def audit_before_flush(session, flush_context, instances):
+
+        user_id = getattr(g, "current_user_id", 0) or 0
+
+        # UPDATE
+        for obj in list(session.dirty):
+
+            if is_audit_model(obj):
+                continue
+
+            state = db.inspect(obj)
+
+            if state.transient or state.deleted:
+                continue
+
+            for attr in state.attrs:
+                hist = get_history(obj, attr.key)
+
+                if not hist.has_changes():
+                    continue
+
+                old = hist.deleted[0] if hist.deleted else None
+                new = hist.added[0] if hist.added else None
+
+                if old == new:
+                    continue
+
+                session.add(
+                    AuditLog(
+                        table_name=obj.__tablename__,
+                        record_id=str(getattr(obj, "id", "")),
+                        field=attr.key,
+                        old_value=str(old) if old is not None else None,
+                        new_value=str(new) if new is not None else None,
+                        changed_by=user_id,
+                        action="UPDATE",
+                    )
+                )
+
+        # DELETE
+        for obj in list(session.deleted):
+
+            if is_audit_model(obj):
+                continue
+
+            session.add(
+                AuditLog(
+                    table_name=obj.__tablename__,
+                    record_id=str(getattr(obj, "id", "")),
+                    field="*",
+                    old_value="DELETED",
+                    new_value=None,
+                    changed_by=user_id,
+                    action="DELETE",
+                )
+            )
+
+    # ------------------------------------------
+    # AFTER FLUSH → INSERT (agora com ID real)
+    # ------------------------------------------
+    @event.listens_for(db.session, "after_flush")
+    def audit_after_flush(session, flush_context):
+
+        user_id = getattr(g, "current_user_id", 0) or 0
+
+        for obj in list(session.new):
+
+            if is_audit_model(obj):
+                continue
+
+            session.add(
+                AuditLog(
+                    table_name=obj.__tablename__,
+                    record_id=str(getattr(obj, "id", "")),
+                    field="*",
+                    old_value=None,
+                    new_value="CREATED",
+                    changed_by=user_id,
+                    action="INSERT",
+                )
+            )

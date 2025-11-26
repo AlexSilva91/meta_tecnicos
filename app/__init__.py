@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, g, session
 
 from app.tasks.daily_os import iniciar_scheduler
 from .database import db
@@ -48,11 +48,13 @@ def create_app(config_object=None):
     login_manager.init_app(app)
     
     from .logging_config import setup_logging
+    from .logging_config import register_audit_listeners
 
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
         setup_logging(app)
         iniciar_scheduler(app)
-        
+        register_audit_listeners()
+    
     from .service.user_service import UserService
     from .routes.login import login_bp
     from .routes.admin_route import admin_bp
@@ -66,6 +68,10 @@ def create_app(config_object=None):
     def load_user(user_id):
         """Carrega o usuário pelo ID armazenado na sessão."""
         return UserService.get_user_by_id(user_id)
+
+    @app.before_request
+    def load_user_into_g():
+        g.current_user_id = session.get("user_id", 0)
 
     logging.info('Iniciando monitoramento...')
     return app
