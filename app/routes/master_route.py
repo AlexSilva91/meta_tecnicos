@@ -316,18 +316,19 @@ def order_services():
 @master_bp.route('/api/update-order-service', methods=["POST"])
 def update_order_service():
     """
-    Atualiza o campo 'retrabalho' de uma ServiceOrder.
+    Atualiza o campo 'retrabalho' e 'observacao' de uma ServiceOrder.
     Espera JSON:
     {
         "os_id": 123,
-        "retrabalho": true
+        "retrabalho": true,
+        "observacao": "texto aqui"
     }
     """
     data = request.get_json()
-    print(data)
 
     os_id = data.get("os_id")
     retrabalho = data.get("retrabalho")
+    observacao = data.get("observacao") 
 
     if os_id is None:
         return jsonify({"error": "os_id é obrigatório"}), 400
@@ -335,12 +336,12 @@ def update_order_service():
     if retrabalho is None:
         return jsonify({"error": "retrabalho é obrigatório (true/false)"}), 400
 
-    updated = DashboardService.update_order_service(os_id, retrabalho)
-    print(updated)
+    updated = DashboardService.update_order_service(os_id, retrabalho, observacao)
     if not updated:
         return jsonify({"error": "ServiceOrder não encontrada"}), 404
 
     return jsonify({
         "id": updated.id,
-        "retrabalho": updated.retrabalho
+        "retrabalho": updated.retrabalho,
+        "observacao": updated.observacoes 
     }), 200

@@ -16,6 +16,7 @@ class ServiceOrder(db.Model):
     os_conteudo = db.Column(db.Text, nullable=False)
     os_servicoprestado = db.Column(db.Text, nullable=False)
     retrabalho = db.Column(db.Boolean, nullable=False, default=False)
+    observacoes = db.Column(db.Text, nullable=True)
     
     type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
     type_service = db.relationship("TypeService", backref="service_orders")
@@ -177,7 +178,7 @@ class ServiceOrder(db.Model):
         return order
 
     @classmethod
-    def update_retrabalho(cls, os_id: str, retrabalho: bool):
+    def update_retrabalho(cls, os_id: str, retrabalho: bool, observacao: str = None):
         """
         Atualiza o campo 'retrabalho' de uma ServiceOrder usando os_id.
         Retorna o objeto atualizado ou None se não existir.
@@ -188,6 +189,7 @@ class ServiceOrder(db.Model):
                 return None
 
             order.retrabalho = bool(retrabalho)
+            order.observacoes = observacao
             db.session.commit()
             return order
 

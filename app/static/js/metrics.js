@@ -1022,20 +1022,33 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                     </div>
                     
                     ${isMostRecent ? `
-                    <div style="
-                        background: rgba(14, 165, 233, 0.1);
-                        padding: 12px;
-                        border-radius: 6px;
-                        border: 1px solid rgba(14, 165, 233, 0.3);
-                        margin-top: 12px;
-                    ">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e2e8f0; font-size: 0.9rem;">
-                            <input type="checkbox" id="retrabalhoCheckbox" 
-                                   ${detail.retrabalho === true ? 'checked' : ''} 
-                                   style="margin: 0; cursor: pointer;">
-                            Marcar como retrabalho
-                        </label>
-                    </div>
+                        <div style="
+                            background: rgba(14, 165, 233, 0.1);
+                            padding: 12px;
+                            border-radius: 6px;
+                            border: 1px solid rgba(14, 165, 233, 0.3);
+                            margin-top: 12px;
+                        ">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e2e8f0; font-size: 0.9rem;">
+                                <input type="checkbox" id="retrabalhoCheckbox" 
+                                    ${detail.retrabalho === true ? 'checked' : ''} 
+                                    style="margin: 0; cursor: pointer;">
+                                Marcar como retrabalho
+                            </label>
+
+                            <textarea id="retrabalhoObs" placeholder="Observações (opcional)" 
+                                style="
+                                    width: 100%;
+                                    margin-top: 10px;
+                                    background: #0f172a;
+                                    border: 1px solid #334155;
+                                    color: #e2e8f0;
+                                    padding: 8px;
+                                    border-radius: 6px;
+                                    font-size: 0.9rem;
+                                    resize: vertical;
+                                ">${detail.observacoes || ''}</textarea>
+                        </div>
                     ` : ''}
                 </div>
             `;
@@ -1094,7 +1107,8 @@ function showServiceDetailsPopup(serviceDetails, isLoading = false, error = null
                         },
                         body: JSON.stringify({
                             os_id: mostRecentService.id,
-                            retrabalho: isRetrabalho
+                            retrabalho: isRetrabalho,
+                            observacao: document.getElementById('retrabalhoObs')?.value || ''
                         })
                     });
 
