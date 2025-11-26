@@ -509,63 +509,102 @@ class DashboardService:
         return months[month - 1] if 1 <= month <= 12 else 'Mês Inválido'
     
     @staticmethod
-    def combine_services_with_assistance(assistance_data: dict, services_data: dict) -> dict:
+    def combine_services_with_assistance(assistance_data: dict, services_data: dict, month: int = None, year: int = None) -> dict:
+        """
+        Combina dados de services_data e assistance_data.
+        - Se month e year forem fornecidos, os retrabalhos serão obtidos via
+        ServiceOrder.get_retrabalho_by_interval(expert_id, start_date, end_date)
+        para cada técnico (apenas técnico responsável).
+        - Se month/year não forem fornecidos, usa os valores em services_data['retrabalho']
+        (comportamento legado).
+        """
+
         combined = defaultdict(int)
         not_realized_dict = defaultdict(int)
         retrabalho_dict = defaultdict(int)
         retrabalho_details = defaultdict(list)
 
-        for i, expert in enumerate(services_data['labels']):
-            combined[expert] += services_data['data'][i]
-            not_realized_dict[expert] = (
-                services_data['not_realized'][i]
-                if 'not_realized' in services_data and i < len(services_data['not_realized'])
-                else 0
-            )
-            if 'retrabalho' in services_data and i < len(services_data.get('retrabalho', [])):
-                retrabalho_dict[expert] = services_data['retrabalho'][i]
+        labels = services_data.get('labels', [])
+        data_list = services_data.get('data', [])
+        not_realized_list = services_data.get('not_realized', [])
+        retrabalho_list = services_data.get('retrabalho', [])
+        detailed_retrabalho_from_services = services_data.get('detailed_retrabalho', {})
 
-        for item in assistance_data['detailed_data']:
-            expert_name = item['expert']
-            added_realized = 0
+        for i, expert in enumerate(labels):
+            combined[expert] += data_list[i] if i < len(data_list) else 0
+            not_realized_dict[expert] = not_realized_list[i] if i < len(not_realized_list) else 0
+
+            if i < len(retrabalho_list):
+                retrabalho_dict[expert] = retrabalho_list[i]
+
+            retrabalho_details[expert] = list(detailed_retrabalho_from_services.get(expert, []))
+
+        for item in assistance_data.get('detailed_data', []):
+            expert_name = item.get('expert')
             added_not_realized = 0
-            for h in item['helped_others']:
+
+            for h in item.get('helped_others', []):
                 for d in h.get('details', []):
                     category = d.get("category", "Desconhecida")
                     if category in blocked_categories:
                         added_not_realized += 1
-                    else:
-                        added_realized += 1
-            # combined[expert_name] += added_realized
+
             not_realized_dict[expert_name] += added_not_realized
 
-        experts = Expert.list_active(limit=10000)
-        for expert in experts:
-            for order in expert.responsible_orders + expert.assistant_orders:
-                if getattr(order, "retrabalho", False):
-                    retrabalho_dict[expert.nome] += 1
+        if month is not None and year is not None:
+
+            start_date = datetime(year, month, 1)
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1)
+            else:
+                end_date = datetime(year, month + 1, 1)
+
+            name_to_id = {}
+            for e in Expert.list_active(limit=10000):
+                name_to_id[e.nome] = e.id
+
+
+            for expert_name in labels:
+                expert_id = name_to_id.get(expert_name)
+                if not expert_id:
+                  
+                    retrabalho_dict[expert_name] = retrabalho_dict.get(expert_name, 0)
+                    retrabalho_details[expert_name] = retrabalho_details.get(expert_name, [])
+                    continue
+
+                retrabalhos = ServiceOrder.get_retrabalho_by_interval(expert_id, start_date, end_date)
+                retrabalho_count = 0
+                details = []
+
+                for order in retrabalhos:
+                    retrabalho_count += 1
                     category = TypeService.get_by_id(order.type_service_id)
                     category_name = category.name if category else "Desconhecida"
-                    retrabalho_details[expert.nome].append({
+                    details.append({
                         "category": category_name,
                         "service_id": order.id,
                         "service_os_id": order.os_id
                     })
 
-        labels = sorted(list(combined.keys()))
+                retrabalho_dict[expert_name] = retrabalho_count
+
+                retrabalho_details[expert_name] = sorted(details, key=lambda x: (x["category"], x["service_id"]))
+
+        final_labels = sorted(list(combined.keys()))
 
         sorted_retrabalho_details = {
             l: sorted(retrabalho_details.get(l, []), key=lambda x: (x["category"], x["service_id"]))
-            for l in labels
+            for l in final_labels
         }
 
         return {
-            'labels': labels,
-            'data': [combined[l] for l in labels],
-            'not_realized': [not_realized_dict.get(l, 0) for l in labels],
-            'retrabalho': [retrabalho_dict.get(l, 0) for l in labels],
+            'labels': final_labels,
+            'data': [combined[l] for l in final_labels],
+            'not_realized': [not_realized_dict.get(l, 0) for l in final_labels],
+            'retrabalho': [retrabalho_dict.get(l, 0) for l in final_labels],
             'detailed_retrabalho': sorted_retrabalho_details
         }
+
 
     @staticmethod
     def merge_services_with_assistance(services_details: dict, month: int, year: int) -> dict:
@@ -742,7 +781,7 @@ class DashboardService:
             'servicesWithAssist': services_with_assist_data['data'][1], 
             'repeatedServices': len(repeated_services_list),
             'servicesByExpert': DashboardService.combine_services_with_assistance(DashboardService.get_assistance_network(month, year), 
-                                                                                  DashboardService.get_services_by_expert(month, year)),
+                                                                                  DashboardService.get_services_by_expert(month, year), month, year),
             'servicesByCategory': DashboardService.get_services_by_category(month, year),
             'servicesWithAssistChart': services_with_assist_data,
             'assistanceNetwork': DashboardService.get_assistance_network(month, year),

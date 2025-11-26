@@ -177,13 +177,13 @@ class ServiceOrder(db.Model):
         return order
 
     @classmethod
-    def update_retrabalho(cls, order_id: int, retrabalho: bool):
+    def update_retrabalho(cls, os_id: str, retrabalho: bool):
         """
-        Atualiza o campo 'retrabalho' de uma ServiceOrder.
+        Atualiza o campo 'retrabalho' de uma ServiceOrder usando os_id.
         Retorna o objeto atualizado ou None se não existir.
         """
         try:
-            order = cls.query.get(order_id)
+            order = cls.query.filter_by(os_id=os_id).first()
             if not order:
                 return None
 

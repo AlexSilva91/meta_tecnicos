@@ -323,7 +323,8 @@ def update_order_service():
         "retrabalho": true
     }
     """
-    data = request.get_json() or {}
+    data = request.get_json()
+    print(data)
 
     os_id = data.get("os_id")
     retrabalho = data.get("retrabalho")
@@ -335,7 +336,7 @@ def update_order_service():
         return jsonify({"error": "retrabalho é obrigatório (true/false)"}), 400
 
     updated = DashboardService.update_order_service(os_id, retrabalho)
-
+    print(updated)
     if not updated:
         return jsonify({"error": "ServiceOrder não encontrada"}), 404
 
