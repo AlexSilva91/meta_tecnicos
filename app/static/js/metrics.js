@@ -359,6 +359,20 @@ function updateCharts(data) {
             },
             options: {
                 ...getResponsiveChartOptions('bar'),
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#fff', 
+                            maxRotation: 45,
+                            minRotation: 45,
+                            autoSkip: false
+                        }
+                    },
+                    y: {
+                        ticks: { color: '#fff' },
+                        beginAtZero: true
+                    }
+                },
                 plugins: {
                     ...getResponsiveChartOptions('bar').plugins,
                     tooltip: {
@@ -584,6 +598,20 @@ function updateCharts(data) {
             },
             options: {
                 ...getResponsiveChartOptions('bar'),
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#fff', 
+                            maxRotation: 45,
+                            minRotation: 45,
+                            autoSkip: false
+                        }
+                    },
+                    y: {
+                        ticks: { color: '#fff' },
+                        beginAtZero: true
+                    }
+                },
                 plugins: {
                     ...getResponsiveChartOptions('bar').plugins,
                     legend: {
