@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 # Adiciona o diretório raiz do projeto ao caminho do Python
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -172,19 +173,36 @@ def executar_e_salvar_no_banco(token: str, app: str, base_url: str, data: str = 
         print(f"❌ Erro na execução principal: {e}")
         raise
 
-# -------------------------------
-# Execução para os últimos 30 dias
-# -------------------------------
 if __name__ == "__main__":
     TOKEN = "1eb4fb6f-c527-458e-8e95-562df138de59"
     APP_NAME = "metricas"
     BASE_URL = "https://ourinet.sgplocal.com.br"
-    
+
     app = create_app()
     with app.app_context():
+
+        tempo_inicio = time.time()          
+        total_os_salvas = 0                 
+
         for i in range(90):
             dia = datetime.today() - timedelta(days=i)
             data_str = dia.strftime("%Y-%m-%d")
+
             print(f"\n📅 Processando OS para a data: {data_str}")
-            resultado = executar_e_salvar_no_banco(TOKEN, APP_NAME, BASE_URL, data_str)
+
+            resultado = executar_e_salvar_no_banco(
+                TOKEN, APP_NAME, BASE_URL, data_str
+            )
+
+            total_os_salvas += resultado.get("ordens_servico", 0)
+
             print(f"🎯 Concluído para {data_str}: {resultado}")
+
+        tempo_fim = time.time()           
+        tempo_total = tempo_fim - tempo_inicio
+
+        print("\n========================")
+        print("📊 RESUMO FINAL")
+        print(f"📦 Total de OS salvas no ano: {total_os_salvas}")
+        print(f"⏱️ Tempo total de execução: {tempo_total:.2f} segundos")
+        print("========================")

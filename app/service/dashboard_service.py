@@ -605,7 +605,6 @@ class DashboardService:
             retrabalhos = ServiceOrder.get_retrabalho_by_interval(
                 expert.id, start_date, end_date
             )
-            print(retrabalhos)
             if not retrabalhos:
                 continue
 
@@ -677,7 +676,7 @@ class DashboardService:
         ordered_detailed = dict(sorted(final_result["detailed"].items(), key=lambda x: x[0]))
 
         result = {"summary": ordered_summary, "detailed": ordered_detailed}
-        print(result)
+        
         return result
 
     @staticmethod
