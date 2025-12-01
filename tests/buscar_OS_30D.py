@@ -184,7 +184,7 @@ if __name__ == "__main__":
         tempo_inicio = time.time()          
         total_os_salvas = 0                 
 
-        for i in range(90):
+        for i in range(120):
             dia = datetime.today() - timedelta(days=i)
             data_str = dia.strftime("%Y-%m-%d")
 
