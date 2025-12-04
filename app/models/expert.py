@@ -32,8 +32,9 @@ class Expert(db.Model):
         return cls.query.filter_by(nome=nome).first()
     
     @classmethod
-    def get_by_id(cls, expert_id: int):
-        """Retorna um especialista pelo ID."""
+    def get_by_id(cls, expert_id):
+        if not expert_id:
+            return None
         return cls.query.get(expert_id)
 
     @classmethod

@@ -10,7 +10,7 @@ class ServiceOrder(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     os_id = db.Column(db.String(50), unique=True, nullable=False)
-    os_data_agendamento = db.Column(db.DateTime, nullable=False)
+    os_data_agendamento = db.Column(db.DateTime, nullable=True)
     os_data_cadastro = db.Column(db.DateTime, nullable=False)
     os_data_finalizacao = db.Column(db.DateTime, nullable=True)
     os_conteudo = db.Column(db.Text, nullable=False)
@@ -21,21 +21,21 @@ class ServiceOrder(db.Model):
     type_service_id = db.Column(db.Integer, db.ForeignKey('type_services.id'), nullable=False)
     type_service = db.relationship("TypeService", backref="service_orders")
     
-    os_tecnico_responsavel = db.Column(db.Integer, db.ForeignKey('experts.id'), nullable=False)
+    os_tecnico_responsavel = db.Column(db.Integer, db.ForeignKey('experts.id'), nullable=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
 
     def __repr__(self):
         return f"<ServiceOrder {self.os_id}>"
 
     # ---------- CRUD ----------
-
     @classmethod
-    def create(cls, os_id: str, os_data_agendamento: datetime, os_conteudo: str, 
-            os_servicoprestado: str, os_tecnico_responsavel: int, 
-            customer_id: int, type_service_id: int = None,
+    def create(cls, os_id: str, os_data_agendamento: datetime = None,
+            os_conteudo: str = "", os_servicoprestado: str = "",
+            os_tecnico_responsavel: int = None,
+            customer_id: int = None, type_service_id: int = None,
             os_data_finalizacao: datetime = None, 
             os_data_cadastro: datetime = None, assistants: list = None):
-        """Cria uma nova ServiceOrder."""
+
         order = cls(
             os_id=os_id,
             os_data_agendamento=os_data_agendamento,
@@ -47,18 +47,17 @@ class ServiceOrder(db.Model):
             customer_id=customer_id,
             type_service_id=type_service_id
         )
+
         db.session.add(order)
-        
-        # Adiciona técnicos auxiliares se fornecidos
+
         if assistants:
             for assistant_id in assistants:
                 assistant = Expert.query.get(assistant_id)
                 if assistant:
                     order.os_tecnicos_auxiliares.append(assistant)
-        
+
         db.session.commit()
         return order
-
 
     @classmethod
     def get_by_customer_id(cls, customer_id: int):

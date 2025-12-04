@@ -255,16 +255,17 @@ def get_repeated_services_table():
 
 @master_bp.route('/api/available-months')
 def get_available_months():
-    """API para obter meses e anos disponíveis no banco de dados"""
     try:
         all_orders = ServiceOrder.list(limit=10000)
-        
+
         date_combinations = set()
         for order in all_orders:
-            date_combinations.add((order.os_data_agendamento.year, order.os_data_agendamento.month))
+            dt = order.os_data_finalizacao
+            if dt:
+                date_combinations.add((dt.year, dt.month))
 
         sorted_dates = sorted(date_combinations, key=lambda x: (x[0], x[1]), reverse=True)
-        
+
         available_months = [
             {
                 'year': year,
@@ -274,15 +275,16 @@ def get_available_months():
             }
             for year, month in sorted_dates
         ]
-        
+
         return jsonify({
             'success': True,
             'data': available_months
         })
-        
+
     except Exception as e:
         logger.error(f'Erro ao carregar meses disponíveis: {e}')
         return jsonify({'error': f'Erro ao carregar meses disponíveis: {str(e)}'}), 500
+
 
 @master_bp.route('/api/details-order-service', methods=["GET", "POST"])
 def order_services():
