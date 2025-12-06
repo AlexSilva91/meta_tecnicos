@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -22,7 +22,8 @@ HORARIO_EXECUCAO = os.getenv("OS_EXECUTION_HOUR")
 
 def rotina_diaria_os():
     with current_app.app_context():
-        data = DATA or datetime.today().strftime("%Y-%m-%d")
+        # data = DATA or datetime.today().strftime("%Y-%m-%d")
+        data = DATA or (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
         logger.info(f"⏰ Iniciando rotina diária: {datetime.now()} (data: {data})")
         try:
             dados_tecnicos = listar_tecnicos(TOKEN, APP_NAME, f"{BASE_URL}/api/ura/tecnicos/")
