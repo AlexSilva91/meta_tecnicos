@@ -17,13 +17,12 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 APP_NAME = os.getenv("APP_NAME")
 BASE_URL = os.getenv("BASE_URL")
-DATA = os.getenv("OS_DATA", datetime.today().strftime("%Y-%m-%d"))
+DATA = os.getenv("OS_DATA", datetime.today().strftime("%Y-%m-%d")) or (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 HORARIO_EXECUCAO = os.getenv("OS_EXECUTION_HOUR")
 
-def rotina_diaria_os():
-    with current_app.app_context():
-        # data = DATA or datetime.today().strftime("%Y-%m-%d")
-        data = DATA or (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+def rotina_diaria_os(app):
+    with app.app_context():
+        data = DATA 
         logger.info(f"⏰ Iniciando rotina diária: {datetime.now()} (data: {data})")
         try:
             dados_tecnicos = listar_tecnicos(TOKEN, APP_NAME, f"{BASE_URL}/api/ura/tecnicos/")
@@ -38,7 +37,7 @@ def rotina_diaria_os():
             resultado = salvar_dados_no_banco(dados_tecnicos, dados_os_detalhadas)
             logger.info(f"✅ Rotina diária finalizada: {resultado}")
         except Exception as e:
-            logger.erro(f"❌ Erro na rotina diária: {e}")
+            logger.error(f"❌ Erro na rotina diária: {e}")
 
 def iniciar_scheduler(app):
     scheduler = BackgroundScheduler(timezone="America/Sao_Paulo")
@@ -49,11 +48,9 @@ def iniciar_scheduler(app):
         rotina_diaria_os,
         trigger,
         id="rotina_diaria_os",
-        replace_existing=True
+        replace_existing=True,
+        kwargs={"app": app}
     )
-
-    # O scheduler precisa da app salva internamente
-    scheduler.app = app
 
     scheduler.start()
     logger.info(f"🕒 Scheduler iniciado, rotina diária marcada para {HORARIO_EXECUCAO}")
