@@ -183,9 +183,6 @@ def preparar_dados_os(os_data, tecnicos_salvos, cliente_id):
         # Técnico responsável
         tecnico_responsavel_username = os_data.get('os_tecnico_responsavel')
         tecnico_responsavel_id = tecnicos_salvos.get(tecnico_responsavel_username)
-        if not tecnico_responsavel_id:
-            print(f"    ⚠️ Técnico responsável não encontrado: {tecnico_responsavel_username}")
-            return None
         
         # Técnicos auxiliares
         tecnicos_auxiliares = [
