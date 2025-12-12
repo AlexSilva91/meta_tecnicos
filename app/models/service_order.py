@@ -150,7 +150,17 @@ class ServiceOrder(db.Model):
         result = query.all()
        
         return result
+    
+    @classmethod
+    def get_by_type_service(cls, type_service):
+        """
+        Aceita tanto o ID quanto o objeto TypeService.
+        """
+        if isinstance(type_service, TypeService):
+            type_service = type_service.id
 
+        return cls.query.filter(ServiceOrder.type_service_id == type_service).all()
+    
     @classmethod
     def update(cls, order_id: int, **kwargs):
         """Atualiza uma ServiceOrder."""

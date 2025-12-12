@@ -1,5 +1,8 @@
 from app.models.service_order import ServiceOrder
 from datetime import datetime
+from collections import defaultdict
+
+from app.models.type_service import TypeService
 
 class ServiceOrderService:
     @staticmethod
@@ -52,3 +55,54 @@ class ServiceOrderService:
     def complete_service_order(order_id: int) -> ServiceOrder | None:
         """Marca uma ordem de serviço como concluída"""
         return ServiceOrder.update(order_id, os_data_finalizacao=datetime.now())
+    
+    @staticmethod
+    def get_service_orders_by_type_service(type_service) -> list:
+        """
+        Retorna todas as ServiceOrder pertencentes a um type_service.
+        Aceita tanto o ID quanto o objeto TypeService.
+        """
+        return ServiceOrder.get_by_type_service(type_service)
+    
+    @staticmethod
+    def get_total_by_month_filtered(type_service, start_date=None, end_date=None):
+
+        # Resolver ID ou nome
+        if isinstance(type_service, str):
+            ts = TypeService.get_by_name(type_service)
+            if not ts:
+                return {}
+            type_service = ts.id
+
+        elif isinstance(type_service, TypeService):
+            type_service = type_service.id
+
+        query = ServiceOrder.query.filter(
+            ServiceOrder.type_service_id == type_service
+        )
+
+        # Aqui removemos os strptime — porque já são datetime
+        if start_date:
+            query = query.filter(
+                (ServiceOrder.os_data_agendamento >= start_date) |
+                (ServiceOrder.os_data_cadastro >= start_date)
+            )
+
+        if end_date:
+            query = query.filter(
+                (ServiceOrder.os_data_agendamento <= end_date) |
+                (ServiceOrder.os_data_cadastro <= end_date)
+            )
+
+        orders = query.all()
+        totals = defaultdict(int)
+
+        for order in orders:
+            date_ref = order.os_data_agendamento or order.os_data_cadastro
+            if not date_ref:
+                continue
+
+            key = date_ref.strftime("%Y-%m")
+            totals[key] += 1
+
+        return dict(totals)

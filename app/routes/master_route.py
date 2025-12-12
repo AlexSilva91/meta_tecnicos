@@ -1,8 +1,11 @@
 from flask import render_template, Blueprint, request, jsonify
 from datetime import datetime
 from app.models.service_order import ServiceOrder
+from app.models.type_service import TypeService
 from app.service.dashboard_service import DashboardService
 import logging
+
+from app.service.service_order_service import ServiceOrderService
 logger = logging.getLogger(__name__)
 
 master_bp = Blueprint('master', __name__)
@@ -347,3 +350,70 @@ def update_order_service():
         "retrabalho": updated.retrabalho,
         "observacao": updated.observacoes 
     }), 200
+
+
+@master_bp.route('/api/reports/service-orders-by-type', methods=["GET"])
+def get_service_orders_by_type():
+    """
+    Filtros opcionais:
+    - type_service: ID ou nome
+    - start_date: YYYY-MM-DD
+    - end_date: YYYY-MM-DD
+
+    Exemplo:
+    /api/reports/service-orders-by-type?type_service=3&start_date=2025-01-01&end_date=2025-12-31
+    """
+
+    try:
+        # --- FILTRO TYPE_SERVICE ---
+        type_service_param = request.args.get("type_service")
+
+        if not type_service_param:
+            return jsonify({"error": "O parâmetro type_service é obrigatório"}), 400
+
+        # Aceita ID ou nome
+        if type_service_param.isdigit():
+            type_service = TypeService.query.get(int(type_service_param))
+        else:
+            type_service = TypeService.query.filter(
+                TypeService.name.ilike(f"%{type_service_param}%")
+            ).first()
+
+        if not type_service:
+            return jsonify({"error": "Tipo de serviço não encontrado"}), 404
+
+        # --- FILTRO DE DATA ---
+        start_date_str = request.args.get("start_date")
+        end_date_str = request.args.get("end_date")
+
+        start_date = None
+        end_date = None
+
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+
+        # CHAMA O SERVICE
+        totals = ServiceOrderService.get_total_by_month_filtered(
+            type_service=type_service,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return jsonify({
+            "success": True,
+            "type_service": {
+                "id": type_service.id,
+                "name": type_service.name
+            },
+            "filters": {
+                "start_date": start_date_str,
+                "end_date": end_date_str
+            },
+            "data": totals
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
